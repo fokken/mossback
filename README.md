@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/mossback-logo.png" alt="mossback logo: a sloth with a moss-covered back" width="240">
+</p>
+
 # mossback
 
 Offline security analysis with a configurable LLM, deterministic tools and durable

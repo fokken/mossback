@@ -1,0 +1,9 @@
+Generated using the built-in image-generation tool with transparent_background=true.
+
++Use case: logo-brand
+Asset type: repository README logo, raster PNG with genuinely transparent background.
+Primary request: an original sloth with a mossy back for the project mossback.
+Subject: one friendly, calm sloth in a compact three-quarter pose, its rounded back clearly visible and covered in lush soft green moss; recognizable cream face with dark eye patches, warm brown fur and curved sloth claws. Make the moss a distinctive living texture on its back rather than a shell.
+Style/medium: polished illustrated mascot logo with clean bold contours, restrained detail, strong readable silhouette at small size.
+Composition/framing: single centered full sloth, comfortable margin, no cropping.
+Constraints: transparent background, no scenery, no props, no text, no wordmark, no watermark. Maintain contrast for both light and dark README backgrounds.
