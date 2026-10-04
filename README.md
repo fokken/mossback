@@ -30,6 +30,9 @@ The universal image also includes Semgrep, a pinned clone of the community rules
 
 ## Safety invariants
 
+[Offline PCAP/PCAPNG analysis](docs/pcap.md) uses TShark, capinfos and a dedicated
+agent to inspect saved traffic and export bounded evidence without live capture.
+
 Optional [Burp project integration](docs/burp.md) accepts a supplied Burp JAR, the PortSwigger MCP extension and proxy, and opens a temporary copy of a project for offline history/finding inspection.
 
 `run-analysis` refuses non-rootless Podman. Analyzer and Nginx run with no capabilities, read-only root filesystems, default seccomp, no-new-privileges and resource limits. Namespace firewalls allow only analyzer → proxy and proxy → configured LLM connections. Guards temporarily use NET_ADMIN and SETPCAP to install those firewalls, then drop every capability before applications start. No host/runtime sockets or host credentials are mounted. See [audit logging](docs/audit-logging.md).

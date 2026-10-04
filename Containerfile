@@ -14,7 +14,7 @@ RUN test -n "$OPENCODE_VERSION" && test -n "$PYGHIDRA_MCP_VERSION" \
  && apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       binutils binwalk ca-certificates curl file ghidra git jq libimage-exiftool-perl nodejs npm \
-      python3 python3-venv radare2 rizin ripgrep socat yara zstd \
+      python3 python3-venv radare2 rizin ripgrep socat tshark wireshark-common yara zstd \
  && npm install --global --ignore-scripts "opencode-ai@${OPENCODE_VERSION}" \
  && python3 -m venv /opt/pyghidra-mcp \
  && /opt/pyghidra-mcp/bin/pip install --no-cache-dir "pyghidra-mcp==${PYGHIDRA_MCP_VERSION}" \
@@ -38,6 +38,7 @@ COPY --chown=analyst:analyst config /opt/mossback/config
 COPY schemas /opt/mossback/schemas
 COPY --chown=analyst:analyst scripts/container-entrypoint /usr/local/bin/container-entrypoint
 COPY tools/source/semgrep-offline /usr/local/bin/semgrep-offline
+COPY tools/pcap/pcap-offline /usr/local/bin/pcap-offline
 COPY scripts/start-burp /usr/local/bin/start-burp
 COPY tests/source-tools-smoke.sh /opt/mossback/tests/source-tools-smoke.sh
 COPY tests/fixtures /opt/mossback/tests/fixtures
@@ -45,6 +46,8 @@ COPY tests/network-probe.py /opt/mossback/tests/network-probe.py
 RUN chmod 0555 /usr/local/bin/container-entrypoint
 RUN chmod 0555 /usr/local/bin/semgrep-offline
 RUN chmod 0555 /usr/local/bin/start-burp
+RUN chmod 0555 /usr/local/bin/pcap-offline \
+ && if [ -f /usr/bin/dumpcap ]; then chmod 000 /usr/bin/dumpcap; fi
 
 USER analyst:analyst
 ENV GHIDRA_INSTALL_DIR=/usr/share/ghidra

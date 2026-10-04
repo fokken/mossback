@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""Bounded, offline capture metadata export; never accepts live capture options."""
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+
+INPUT = Path("/audit/input")
+OUTPUT = Path("/audit/output")
+FIELDS = ("frame.number", "frame.time_epoch", "frame.len", "frame.protocols",
+          "ip.src", "ip.dst", "ipv6.src", "ipv6.dst", "tcp.srcport",
+          "tcp.dstport", "udp.srcport", "udp.dstport", "tcp.stream")
+
+
+def beneath(path, root):
+    return path != root and root in path.parents
+
+
+def export(capture, destination, packet_limit=10000, display_filter=""):
+    capture = Path(capture).resolve(strict=True)
+    destination = Path(destination).resolve()
+    if not capture.is_file() or not beneath(capture, INPUT.resolve()):
+        raise ValueError("capture must resolve to a regular file below /audit/input")
+    if not beneath(destination, OUTPUT.resolve()):
+        raise ValueError("destination must resolve below /audit/output")
+    if not 1 <= packet_limit <= 100000:
+        raise ValueError("packet limit must be between 1 and 100000")
+    # Never overwrite another export or an existing evidence directory.
+    destination.mkdir(parents=True, exist_ok=False)
+    digest = hashlib.sha256()
+    with capture.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    command = ["tshark", "-n", "-r", str(capture), "-c", str(packet_limit),
+               "-T", "fields", "-E", "header=y", "-E", "quote=d"]
+    for field in FIELDS:
+        command.extend(["-e", field])
+    if display_filter:
+        command.extend(["-Y", display_filter])
+    metadata = dict(capture=str(capture), sha256=digest.hexdigest(),
+                    run_id=os.environ.get("ANALYSIS_RUN_ID", "unknown"),
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    packet_limit=packet_limit, display_filter=display_filter,
+                    fields=FIELDS, commands=[], status="running",
+                    limitations=["Only the first packet_limit input packets are inspected, before filtering.",
+                                 "Application payloads omitted; metadata may still be sensitive."])
+    status = 0
+    try:
+        for arguments, filename in ((["tshark", "--version"], "tool-version.txt"),
+                                    (["capinfos", "-c", "-s", "-a", "-e", str(capture)], "capture-info.txt"),
+                                    (command, "frames.tsv")):
+            metadata["commands"].append(arguments)
+            with (destination / filename).open("w") as output, \
+                    (destination / (filename + ".stderr")).open("w") as errors:
+                result = subprocess.run(arguments, stdout=output, stderr=errors,
+                                        timeout=120, check=False)
+            if result.returncode:
+                status = result.returncode
+                break
+        metadata["status"] = "completed" if status == 0 else "failed"
+    except (OSError, subprocess.TimeoutExpired) as error:
+        metadata.update(status="failed", error_type=type(error).__name__)
+        status = 1
+    finally:
+        (destination / "manifest.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    return status
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("capture")
+    parser.add_argument("destination", help="new evidence directory below /audit/output")
+    parser.add_argument("--packet-limit", type=int, default=10000)
+    parser.add_argument("--filter", default="", help="Wireshark display filter")
+    args = parser.parse_args()
+    os.umask(0o077)
+    try:
+        return export(args.capture, args.destination, args.packet_limit, args.filter)
+    except (ValueError, OSError) as error:
+        parser.error(str(error))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

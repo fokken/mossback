@@ -27,7 +27,7 @@ Nginx and opens the OpenCode TUI. All resources created for this run are removed
 on exit. Upstream connectivity is exercised when the first API request occurs.
 
 5. Ask static-analyst to analyze a bounded scope. It delegates to source-analyst,
-   binary-analyst and optional burp-analyst, then asks reporter to consolidate
+   binary-analyst, pcap-analyst and optional burp-analyst, then asks reporter to consolidate
    findings. Approve reviewed source-tool commands when prompted. Example:
 
 > Review `/audit/input/source` for authentication and authorization weaknesses.
