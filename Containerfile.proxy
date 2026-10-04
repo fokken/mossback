@@ -1,0 +1,12 @@
+# Companion image contains Nginx and the short-lived firewall setup command.
+ARG PROXY_BASE_IMAGE
+FROM ${PROXY_BASE_IMAGE}
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      nginx-light nftables util-linux ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --uid 10001 --create-home --shell /usr/sbin/nologin proxy
+COPY scripts/network-guard /usr/local/bin/network-guard
+RUN chmod 0555 /usr/local/bin/network-guard
+USER 10001:10001
+CMD ["nginx", "-c", "/run/proxy/nginx.conf", "-g", "daemon off;"]

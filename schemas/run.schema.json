@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://security-ai.local/schemas/run.schema.json",
+  "title": "Analysis run metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "timestamp", "model", "analysis_modules", "start_time", "status"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "model": { "type": "string", "minLength": 1 },
+    "agent_version": { "type": "string" },
+    "tool_versions": { "type": "object", "additionalProperties": { "type": "string" } },
+    "input_hashes": { "type": "object", "additionalProperties": { "type": "string" } },
+    "analysis_modules": { "type": "array", "items": { "type": "string" } },
+    "start_time": { "type": "string", "format": "date-time" },
+    "end_time": { "type": "string", "format": "date-time" },
+    "status": { "type": "string", "enum": ["running", "completed", "failed", "cancelled"] }
+  }
+}

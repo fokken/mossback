@@ -1,0 +1,64 @@
+worker_processes 1;
+pid /tmp/nginx.pid;
+error_log /dev/stderr crit;
+events { worker_connections 128; }
+http {
+    client_body_temp_path /tmp/client-body;
+    proxy_temp_path /tmp/proxy;
+    client_max_body_size 16m;
+    client_header_timeout 15s;
+    client_body_timeout 60s;
+    server_tokens off;
+    map "$request_method:$request_uri" $api_allowed {
+        default 0;
+        "GET:/v1/models" 1;
+        "POST:/v1/chat/completions" 1;
+        "POST:/v1/responses" 1;
+    }
+    map $api_allowed $audit_route {
+        default "denied";
+        1 $uri;
+    }
+    log_format audit escape=json
+        '{"run_id":"@@RUN_ID@@","timestamp":"$time_iso8601",'
+        '"request_id":"$request_id","method":"$request_method",'
+        '"route":"$audit_route","status":$status,'
+        '"request_bytes":$request_length,"response_bytes":$bytes_sent,'
+        '"duration_seconds":$request_time,"upstream_status":"$upstream_status",'
+        '"upstream_duration_seconds":"$upstream_response_time"}';
+    access_log /var/log/llm-proxy/access.jsonl audit;
+    server {
+        listen 8080;
+        add_header X-Request-ID $request_id always;
+        location = /healthz {
+            if ($remote_addr != 127.0.0.1) { return 403; }
+            access_log off;
+            return 200;
+        }
+        location / {
+            if ($api_allowed = 0) { return 403; }
+            proxy_pass @@UPSTREAM@@;
+            proxy_http_version 1.1;
+            proxy_set_header Host "@@UPSTREAM_HOST@@";
+            proxy_pass_request_headers off;
+            proxy_set_header Content-Type application/json;
+            proxy_set_header Accept application/json;
+            proxy_set_header Accept-Encoding "";
+            proxy_set_header Connection "";
+            proxy_set_header X-Request-ID $request_id;
+            proxy_set_header Authorization "@@AUTHORIZATION@@";
+            proxy_buffering off;
+            proxy_cache off;
+            proxy_max_temp_file_size 0;
+            proxy_connect_timeout 10s;
+            proxy_read_timeout 600s;
+            proxy_send_timeout 600s;
+            proxy_next_upstream off;
+            proxy_ignore_headers X-Accel-Redirect X-Accel-Buffering;
+            proxy_intercept_errors on;
+            error_page 301 302 303 307 308 =502 /redirect-denied;
+            @@TLS_SETTINGS@@
+        }
+        location = /redirect-denied { internal; return 502; }
+    }
+}

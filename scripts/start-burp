@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+: "${BURP_PROJECT:?BURP_PROJECT must name a project under /audit/input}"
+project=$(realpath -e "$BURP_PROJECT")
+case "$project" in /audit/input/*) ;; *) echo 'Burp project must resolve below /audit/input' >&2; exit 64;; esac
+test -f "$project"
+for file in burp-suite.jar burp-mcp-all.jar mcp-proxy-all.jar; do
+  test -f "/opt/burp/$file" || { echo "missing trusted runtime /opt/burp/$file" >&2; exit 66; }
+done
+mkdir -p /audit/work/burp
+# Burp may update its project. Never open the original or resume saved scans.
+cp -- "$project" /audit/work/burp/project.burp
+heap=$(jq -er '.heap' /opt/security-ai/config/burp/launch.json)
+exec java "-Xmx$heap" -Djava.awt.headless=true \
+  -Djava.io.tmpdir=/audit/work/burp \
+  -jar /opt/burp/burp-suite.jar \
+  --project-file=/audit/work/burp/project.burp \
+  --user-config-file=/opt/security-ai/config/burp/user-options.json \
+  --config-file=/opt/security-ai/config/burp/project-options.json

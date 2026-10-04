@@ -1,0 +1,58 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "local/__LLM_MODEL__",
+  "default_agent": "static-analyst",
+  "update": "disable",
+  "mcp": {
+    "servers": {
+      "burp": {
+        "type": "local",
+        "command": ["java", "-jar", "/opt/burp/mcp-proxy-all.jar", "--sse-url", "http://127.0.0.1:9876"],
+        "disabled": true,
+        "codemode": false
+      },
+      "pyghidra": {
+        "type": "local",
+        "command": ["/opt/pyghidra-mcp/bin/pyghidra-mcp", "--project-path", "/audit/work/ghidra-projects"],
+        "cwd": "/audit/work",
+        "codemode": false,
+        "timeout": { "startup": 120000, "catalog": 60000, "execution": 600000 }
+      }
+    }
+  },
+  "permissions": [
+    { "action": "subagent", "resource": "*", "effect": "deny" },
+    { "action": "webfetch", "resource": "*", "effect": "deny" },
+    { "action": "websearch", "resource": "*", "effect": "deny" },
+    { "action": "edit", "resource": "*", "effect": "deny" },
+    { "action": "edit", "resource": "/audit/work/**", "effect": "allow" },
+    { "action": "edit", "resource": "/audit/output/**", "effect": "allow" },
+    { "action": "edit", "resource": "/audit/work/AGENTS.md", "effect": "deny" },
+    { "action": "edit", "resource": "/audit/work/.config/**", "effect": "deny" },
+    { "action": "burp_*", "resource": "*", "effect": "deny" },
+    { "action": "burp_get_proxy_http_history", "resource": "*", "effect": "allow" },
+    { "action": "burp_get_proxy_http_history_regex", "resource": "*", "effect": "allow" },
+    { "action": "burp_get_proxy_websocket_history", "resource": "*", "effect": "allow" },
+    { "action": "burp_get_proxy_websocket_history_regex", "resource": "*", "effect": "allow" },
+    { "action": "burp_get_scanner_issues", "resource": "*", "effect": "allow" },
+    { "action": "burp_get_organizer_items", "resource": "*", "effect": "allow" },
+    { "action": "burp_get_organizer_items_regex", "resource": "*", "effect": "allow" }
+  ],
+  "providers": {
+    "local": {
+      "package": "@opencode/ai/providers/openai-compatible",
+      "name": "Local OpenAI-compatible LLM",
+      "settings": {
+        "baseURL": "{env:LLM_BASE_URL}",
+        "apiKey": "{env:LLM_API_KEY}"
+      },
+      "models": {
+        "__LLM_MODEL__": {
+          "name": "Local model",
+          "modelID": "__LLM_MODEL__",
+          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] }
+        }
+      }
+    }
+  }
+}

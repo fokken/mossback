@@ -1,0 +1,6 @@
+rules:
+  - id: security-ai-smoke
+    languages: [python]
+    severity: WARNING
+    message: Smoke-test evidence only.
+    pattern: eval($X)

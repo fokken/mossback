@@ -1,0 +1,5 @@
+{
+  "heap": "1536m",
+  "mcp_url": "http://127.0.0.1:9876",
+  "startup_timeout_seconds": 90
+}

@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+# Only this setup process receives NET_ADMIN and SETPCAP, inside a rootless
+# network namespace. It never loads artifacts or application configuration.
+nft -f /run/firewall.nft
+exec setpriv --bounding-set=-all --inh-caps=-all --ambient-caps=-all \
+  --no-new-privs sh -c 'echo NETWORK_POLICY_READY; exec sleep infinity'

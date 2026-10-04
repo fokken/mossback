@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Dependency-free structural validation for persisted analysis output."""
+import json
+import re
+import sys
+from pathlib import Path
+
+STATUSES = {"unverified", "investigating", "confirmed", "rejected", "needs_manual_review"}
+SEVERITIES = {"informational", "low", "medium", "high", "critical"}
+CONFIDENCES = {"low", "medium", "high"}
+REQUIRED = {"id", "title", "asset", "evidence", "confidence", "severity", "verification_status", "discovered_by", "recommendation"}
+
+def fail(message):
+    print(f"validation error: {message}", file=sys.stderr)
+    return 1
+
+def validate_finding(item, source, line):
+    missing = REQUIRED - item.keys()
+    if missing or not re.fullmatch(r"F-[A-Z0-9-]+", str(item.get("id", ""))):
+        return fail(f"{source}:{line}: invalid finding identity or missing {sorted(missing)}")
+    if item["verification_status"] not in STATUSES or item["severity"] not in SEVERITIES or item["confidence"] not in CONFIDENCES:
+        return fail(f"{source}:{line}: invalid status, severity, or confidence")
+    if not isinstance(item["evidence"], list) or not item["evidence"] or not all(re.fullmatch(r"E-[A-Z0-9-]+", str(e)) for e in item["evidence"]):
+        return fail(f"{source}:{line}: evidence must contain evidence IDs")
+    return 0
+
+def main():
+    if len(sys.argv) != 2:
+        return fail("usage: validate-output OUTPUT_DIR")
+    output = Path(sys.argv[1])
+    findings = output / "findings.jsonl"
+    if findings.exists():
+        for line_no, line in enumerate(findings.read_text().splitlines(), 1):
+            if line.strip():
+                try: item = json.loads(line)
+                except json.JSONDecodeError: return fail(f"{findings}:{line_no}: invalid JSON")
+                if validate_finding(item, findings, line_no): return 1
+    run = output / "run.json"
+    if run.exists():
+        try: data = json.loads(run.read_text())
+        except json.JSONDecodeError: return fail(f"{run}: invalid JSON")
+        required = {"run_id", "timestamp", "model", "analysis_modules", "start_time", "status"}
+        if required - data.keys() or data.get("status") not in {"running", "completed", "failed", "cancelled"}:
+            return fail(f"{run}: missing required run metadata or invalid status")
+    print("output validation passed")
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,35 @@
+#!/bin/sh
+# Build-time only. All runtime rules and query packs are supplied by the image.
+set -eu
+: "${SEMGREP_RULES_COMMIT:?full rules commit required}"
+: "${CODEQL_BUNDLE_TAG:?CodeQL bundle release tag required}"
+: "${CODEQL_BUNDLE_SHA256:?platform-specific bundle SHA256 required}"
+printf '%s' "$SEMGREP_RULES_COMMIT" | rg -q '^[0-9a-f]{40}$'
+printf '%s' "$CODEQL_BUNDLE_SHA256" | rg -q '^[0-9a-f]{64}$'
+printf '%s' "$CODEQL_BUNDLE_TAG" | rg -q '^codeql-bundle-v[0-9]+\.[0-9]+\.[0-9]+$'
+
+git init /opt/semgrep-rules
+git -C /opt/semgrep-rules remote add origin https://github.com/semgrep/semgrep-rules.git
+git -C /opt/semgrep-rules fetch --depth=1 origin "$SEMGREP_RULES_COMMIT"
+git -C /opt/semgrep-rules checkout --detach FETCH_HEAD
+test "$(git -C /opt/semgrep-rules rev-parse HEAD)" = "$SEMGREP_RULES_COMMIT"
+
+case "$(dpkg --print-architecture)" in
+  amd64) platform=linux64 ;;
+  arm64) platform=linux-arm64 ;;
+  *) echo 'CodeQL bundle requires amd64 or arm64' >&2; exit 64 ;;
+esac
+archive=/tmp/codeql-bundle.tar.zst
+curl --fail --location --proto '=https' --proto-redir '=https' \
+  "https://github.com/github/codeql-action/releases/download/$CODEQL_BUNDLE_TAG/codeql-bundle-$platform.tar.zst" \
+  --output "$archive"
+printf '%s  %s\n' "$CODEQL_BUNDLE_SHA256" "$archive" | sha256sum --check --strict
+tar --zstd -xf "$archive" -C /opt
+rm "$archive"
+test -x /opt/codeql/codeql
+/opt/codeql/codeql version
+/opt/codeql/codeql resolve packs
+mkdir -p /opt/security-ai
+printf 'semgrep-rules=%s\ncodeql-bundle=%s\ncodeql-sha256=%s\n' \
+  "$SEMGREP_RULES_COMMIT" "$CODEQL_BUNDLE_TAG" "$CODEQL_BUNDLE_SHA256" \
+  > /opt/security-ai/source-tools.lock

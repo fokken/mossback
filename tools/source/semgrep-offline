@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+# Explicit local rules, with metrics and update checks disabled.
+export SEMGREP_SEND_METRICS=off SEMGREP_ENABLE_VERSION_CHECK=0
+# The checkout root also contains CI YAML and other non-rule files. Select
+# CE language directories explicitly, excluding Pro-only apex/elixir rules.
+rules_root=${SEMGREP_RULES_DIR:-/opt/semgrep-rules}
+for language in bash c clojure csharp dockerfile generic go html java javascript \
+  json kotlin ocaml php python ruby rust scala solidity swift terraform typescript yaml; do
+  if [ -d "$rules_root/$language" ]; then
+    set -- --config "$rules_root/$language" "$@"
+  fi
+done
+exec semgrep scan --oss-only --metrics=off --disable-version-check "$@"

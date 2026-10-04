@@ -1,0 +1,74 @@
+#!/bin/sh
+set -eu
+
+burp_pid=
+cleanup() {
+  for child in "$burp_pid"; do
+    [ -z "$child" ] || kill "$child" 2>/dev/null || true
+  done
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+: "${LLM_BASE_URL:?launcher must supply the restricted TCP proxy URL}"
+: "${ANALYSIS_RUN_ID:?launcher must supply the run ID}"
+export XDG_CONFIG_HOME=/audit/work/.config
+export HOME=/audit/work/home
+export XDG_CACHE_HOME=/audit/work/.cache
+export XDG_DATA_HOME=/audit/work/.local/share
+mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME"
+mkdir -p "$HOME/.local"
+ln -s "$XDG_DATA_HOME" "$HOME/.local/share"
+audit_dir="/audit/output/logs/$ANALYSIS_RUN_ID"
+mkdir -p "$audit_dir/opencode" "$XDG_DATA_HOME/opencode"
+# Only application logs persist, not auth files or full session databases.
+ln -s "$audit_dir/opencode" "$XDG_DATA_HOME/opencode/log"
+event() {
+  jq -nc --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg run_id "$ANALYSIS_RUN_ID" --arg action "$1" \
+    '{timestamp: $timestamp, run_id: $run_id, action: $action}' >> "$audit_dir/runtime.jsonl"
+}
+event runtime_started
+jq -nc --arg run_id "$ANALYSIS_RUN_ID" --arg model "$LLM_MODEL" \
+  '{run_id: $run_id, model: $model}' > /audit/output/run-context.json
+mkdir -p "$XDG_CONFIG_HOME/opencode" /audit/work/ghidra-projects
+case "${LLM_MODEL:?LLM_MODEL is required}" in *[!A-Za-z0-9._:/-]*) echo "LLM_MODEL contains unsupported characters" >&2; exit 64;; esac
+sed "s|__LLM_MODEL__|$LLM_MODEL|g" /opt/security-ai/config/opencode/opencode.json > "$XDG_CONFIG_HOME/opencode/opencode.json"
+cp -R /opt/security-ai/config/agents "$XDG_CONFIG_HOME/opencode/agents"
+cp /opt/security-ai/config/agents-policy.md /audit/work/AGENTS.md
+event agents_configured
+
+if [ -n "${BURP_PROJECT:-}" ]; then
+  mkdir -p /audit/output/logs
+  event burp_starting
+  start-burp > "$audit_dir/burp.log" 2>&1 &
+  burp_pid=$!
+  timeout=$(jq -er '.startup_timeout_seconds' /opt/security-ai/config/burp/launch.json)
+  url=$(jq -er '.mcp_url' /opt/security-ai/config/burp/launch.json)
+  attempts=0
+  burp_ready() {
+    # SSE streams stay open: curl timing out after receiving headers is normal.
+    curl --silent --noproxy '*' --max-time 1 --header 'Accept: text/event-stream' \
+      --dump-header /audit/work/burp-headers --output /dev/null "$url" || true
+    rg -qi '^HTTP/[^ ]+ 200' /audit/work/burp-headers \
+      && rg -qi '^content-type:.*text/event-stream' /audit/work/burp-headers
+  }
+  until burp_ready; do
+    kill -0 "$burp_pid" 2>/dev/null || { echo 'Burp exited; see output/logs/burp.log' >&2; exit 70; }
+    attempts=$((attempts + 1))
+    [ "$attempts" -lt "$timeout" ] || { echo 'Burp MCP startup timed out; check license and extension settings' >&2; exit 70; }
+    sleep 1
+  done
+  config="$XDG_CONFIG_HOME/opencode/opencode.json"
+  jq '.mcp.servers.burp.disabled = false' "$config" > "$config.tmp"
+  mv "$config.tmp" "$config"
+  event burp_mcp_ready
+fi
+
+# Run in the foreground so the interactive TUI retains terminal stdin.
+event opencode_starting
+status=0
+opencode --log-level INFO "$@" || status=$?
+event opencode_exited
+exit "$status"
