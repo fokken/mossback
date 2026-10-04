@@ -1,65 +1,117 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "local/__LLM_MODEL__",
+  "model": "mossback/__LLM_MODEL__",
   "default_agent": "static-analyst",
-  "update": "disable",
+  "autoupdate": false,
+  "share": "disabled",
+  "enabled_providers": [
+    "mossback"
+  ],
   "mcp": {
-    "servers": {
-      "wiremcp": {
-        "type": "local",
-        "command": ["node", "/opt/wiremcp/index.js"],
-        "cwd": "/audit/work",
-        "codemode": false,
-        "timeout": { "startup": 30000, "catalog": 30000, "execution": 120000 }
-      },
-      "burp": {
-        "type": "local",
-        "command": ["java", "-jar", "/opt/burp/mcp-proxy-all.jar", "--sse-url", "http://127.0.0.1:9876"],
-        "disabled": true,
-        "codemode": false
-      },
-      "pyghidra": {
-        "type": "local",
-        "command": ["/opt/pyghidra-mcp/bin/pyghidra-mcp", "--project-path", "/audit/work/ghidra-projects"],
-        "cwd": "/audit/work",
-        "codemode": false,
-        "timeout": { "startup": 120000, "catalog": 60000, "execution": 600000 }
-      }
+    "burp": {
+      "type": "local",
+      "command": [
+        "java",
+        "-jar",
+        "/opt/burp/mcp-proxy-all.jar",
+        "--sse-url",
+        "http://127.0.0.1:9876"
+      ],
+      "enabled": false,
+      "timeout": 120000
+    },
+    "pyghidra": {
+      "type": "local",
+      "command": [
+        "/opt/pyghidra-mcp/bin/pyghidra-mcp",
+        "--transport",
+        "stdio",
+        "--project-path",
+        "/audit/work/ghidra-projects"
+      ],
+      "enabled": true,
+      "timeout": 600000
+    },
+    "wiremcp": {
+      "type": "local",
+      "command": [
+        "node",
+        "/opt/wiremcp/index.js"
+      ],
+      "enabled": true,
+      "timeout": 120000
     }
   },
-  "permissions": [
-    { "action": "subagent", "resource": "*", "effect": "deny" },
-    { "action": "webfetch", "resource": "*", "effect": "deny" },
-    { "action": "websearch", "resource": "*", "effect": "deny" },
-    { "action": "edit", "resource": "*", "effect": "deny" },
-    { "action": "edit", "resource": "/audit/work/**", "effect": "allow" },
-    { "action": "edit", "resource": "/audit/output/**", "effect": "allow" },
-    { "action": "edit", "resource": "/audit/work/AGENTS.md", "effect": "deny" },
-    { "action": "edit", "resource": "/audit/work/.config/**", "effect": "deny" },
-    { "action": "burp_*", "resource": "*", "effect": "deny" },
-    { "action": "wiremcp_*", "resource": "*", "effect": "deny" },
-    { "action": "wiremcp_analyze_pcap", "resource": "*", "effect": "allow" },
-    { "action": "burp_get_proxy_http_history", "resource": "*", "effect": "allow" },
-    { "action": "burp_get_proxy_http_history_regex", "resource": "*", "effect": "allow" },
-    { "action": "burp_get_proxy_websocket_history", "resource": "*", "effect": "allow" },
-    { "action": "burp_get_proxy_websocket_history_regex", "resource": "*", "effect": "allow" },
-    { "action": "burp_get_scanner_issues", "resource": "*", "effect": "allow" },
-    { "action": "burp_get_organizer_items", "resource": "*", "effect": "allow" },
-    { "action": "burp_get_organizer_items_regex", "resource": "*", "effect": "allow" }
-  ],
-  "providers": {
-    "local": {
-      "package": "@opencode/ai/providers/openai-compatible",
-      "name": "Local OpenAI-compatible LLM",
-      "settings": {
+  "permission": {
+    "*": "deny",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "question": "allow",
+    "todowrite": "allow",
+    "todoread": "allow",
+    "bash": "deny",
+    "task": "deny",
+    "webfetch": "deny",
+    "websearch": "deny",
+    "external_directory": {
+      "*": "deny",
+      "/audit/input/**": "allow",
+      "/audit/output/**": "allow",
+      "/audit/rules/**": "allow",
+      "/opt/mossback/**": "allow",
+      "/opt/semgrep-rules/**": "allow"
+    },
+    "edit": {
+      "*": "deny",
+      "/audit/work/**": "allow",
+      "/audit/output/**": "allow",
+      "/audit/work/AGENTS.md": "deny",
+      "/audit/work/.config/**": "deny"
+    },
+    "pyghidra_*": "deny",
+    "wiremcp_*": "deny",
+    "burp_*": "deny",
+    "burp_get_proxy_http_history": "allow",
+    "burp_get_proxy_http_history_regex": "allow",
+    "burp_get_proxy_websocket_history": "allow",
+    "burp_get_proxy_websocket_history_regex": "allow",
+    "burp_get_scanner_issues": "allow",
+    "burp_get_organizer_items": "allow",
+    "burp_get_organizer_items_regex": "allow"
+  },
+  "agent": {
+    "build": {
+      "disable": true
+    },
+    "plan": {
+      "disable": true
+    },
+    "general": {
+      "disable": true
+    },
+    "explore": {
+      "disable": true
+    }
+  },
+  "provider": {
+    "mossback": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Configured LLM through restricted proxy",
+      "options": {
         "baseURL": "{env:LLM_BASE_URL}",
-        "apiKey": "{env:LLM_API_KEY}"
+        "apiKey": "proxy-managed"
       },
       "models": {
         "__LLM_MODEL__": {
-          "name": "Local model",
-          "modelID": "__LLM_MODEL__",
-          "capabilities": { "tools": true, "input": ["text"], "output": ["text"] }
+          "name": "Configured model",
+          "id": "__LLM_MODEL__",
+          "tool_call": true,
+          "limit": {
+            "context": 32768,
+            "output": 4096
+          }
         }
       }
     }

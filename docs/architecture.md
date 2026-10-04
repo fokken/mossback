@@ -1,7 +1,9 @@
 # Architecture and trust boundaries
 
 mossback combines one universal analysis image with a small LLM proxy image.
-The LLM runs outside both containers on an operator-controlled private endpoint.
+The LLM runs outside both containers on an operator-controlled private endpoint
+by default. [Public HTTPS providers](llm-providers.md) require explicit opt-in and
+authorization for assessment content to leave the local environment.
 
 ## Runtime boundary
 
@@ -27,7 +29,7 @@ flowchart TB
         end
         Analyzer -->|"only proxy TCP 8080"| Nginx
     end
-    LLM["Local LLM: configured private IP and port"]
+    LLM["Configured LLM: fixed IP and port<br/>Local default, public HTTPS opt-in"]
     Operator -->|"start and verify guards"| AG
     Operator -->|"start and verify guards"| PG
     Operator -->|"lifecycle and run metadata"| Audit

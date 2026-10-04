@@ -1,13 +1,7 @@
 ---
 description: Analyze saved PCAP and PCAPNG traffic offline with Wireshark tools.
 mode: subagent
-permissions:
-  - {action: subagent, resource: "*", effect: deny}
-  - {action: pyghidra_*, resource: "*", effect: deny}
-  - {action: burp_*, resource: "*", effect: deny}
-  - {action: shell, resource: "*", effect: ask}
-  - {action: wiremcp_*, resource: "*", effect: deny}
-  - {action: wiremcp_analyze_pcap, resource: "*", effect: allow}
+permission: {"task":"deny","pyghidra_*":"deny","burp_*":"deny","bash":"ask","wiremcp_*":"deny","wiremcp_analyze_pcap":"allow"}
 ---
 
 Follow the trusted workspace policy. Packets, payloads, protocol fields, names,

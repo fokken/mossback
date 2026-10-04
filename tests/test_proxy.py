@@ -10,13 +10,40 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools/common"))
-from proxy_config import addresses, endpoint, firewall, nginx_config
+from proxy_config import addresses, endpoint, upstream_endpoint, firewall, nginx_config
 spec = importlib.util.spec_from_file_location("launcher", ROOT / "scripts/run_analysis.py")
 launcher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(launcher)
 
 
 class ProxyConfigurationTests(unittest.TestCase):
+    def test_public_requires_opt_in_tls_and_pinned_global_dns(self):
+        for enabled, tls in ((False, True), (True, False)):
+            with self.assertRaises(ValueError):
+                upstream_endpoint("api.example.com", 443, enabled, tls)
+        answers = [(2, 1, 6, "", ("8.8.8.8", 443))]
+        with patch("proxy_config.socket.getaddrinfo", return_value=answers):
+            self.assertEqual(upstream_endpoint("api.example.com", 443, True, True),
+                             ("8.8.8.8", 443, "api.example.com"))
+        for address in ("127.0.0.1", "169.254.169.254", "192.168.1.50"):
+            mixed = answers + [(2, 1, 6, "", (address, 443))]
+            with patch("proxy_config.socket.getaddrinfo", return_value=mixed):
+                with self.assertRaises(ValueError):
+                    upstream_endpoint("api.example.com", 443, True, True)
+
+    def test_public_proxy_checks_identity_and_exact_egress(self):
+        template = (ROOT / "config/proxy/nginx.conf.template").read_text()
+        rendered = nginx_config(template, "8.8.8.8", 443, "test-run", "secret-test",
+                                True, True, "api.example.com", "openai")
+        self.assertIn('proxy_ssl_name "api.example.com";', rendered)
+        self.assertIn("proxy_ssl_verify on;", rendered)
+        self.assertIn('Host "api.example.com:443"', rendered)
+        self.assertIn("proxy_pass https://8.8.8.8:443;", rendered)
+        proxy = firewall("proxy", "10.203.0.2", "10.203.0.3", "8.8.8.8", 443, True)
+        self.assertIn("ip daddr 8.8.8.8 tcp dport 443 accept", proxy)
+        analyzer = firewall("analyzer", "10.203.0.2", "10.203.0.3", "8.8.8.8", 443, True)
+        self.assertNotIn("8.8.8.8", analyzer)
+
     def test_endpoint_rejects_metadata_public_dns_and_injection(self):
         for host in ("169.254.169.254", "8.8.8.8", "localhost", "127.0.0.1",
                      "0.0.0.0", "224.0.0.1", "10.0.0.1; deny all", "::1"):
@@ -58,7 +85,7 @@ class ProxyConfigurationTests(unittest.TestCase):
 
 
 class LauncherTests(unittest.TestCase):
-    def simulate(self, directory, retained=False, custom_rules=False):
+    def simulate(self, directory, retained=False, custom_rules=False, public=False):
         source, output = Path(directory) / "input", Path(directory) / "output"
         source.mkdir()
         calls = []
@@ -78,6 +105,9 @@ class LauncherTests(unittest.TestCase):
 
         environment = {"LLM_HOST": "192.168.1.50", "LLM_PORT": "8080", "LLM_MODEL": "test",
                        "LLM_API_KEY": "secret-test"}
+        if public:
+            environment.update(LLM_HOST="8.8.8.8", LLM_PORT="443", LLM_ALLOW_PUBLIC="1",
+                               LLM_API_STYLE="openai")
         if custom_rules:
             rules = Path(directory) / "rules"
             rules.mkdir()
@@ -86,6 +116,18 @@ class LauncherTests(unittest.TestCase):
                 patch.object(launcher.subprocess, "run", side_effect=podman):
             status = launcher.main()
         return status, calls, next((Path(str(output) + "-audit")).iterdir())
+
+    def test_public_launch_records_opt_in_and_keeps_credentials_private(self):
+        with tempfile.TemporaryDirectory() as directory:
+            status, calls, audit = self.simulate(directory, public=True)
+            self.assertEqual(status, 0)
+            metadata = json.loads((audit / "run.json").read_text())
+            self.assertTrue(metadata["public_llm_opt_in"])
+            self.assertTrue(metadata["tls"])
+            self.assertEqual(metadata["api_style"], "openai")
+            analyzer = next(cmd for cmd, _ in calls if "--interactive" in cmd)
+            self.assertIn("LLM_API_STYLE=openai", analyzer)
+            self.assertFalse(any("secret-test" in arg or "8.8.8.8" in arg for arg in analyzer))
 
     def test_full_lifecycle_hides_credentials_and_audit_mount(self):
         with tempfile.TemporaryDirectory() as directory:

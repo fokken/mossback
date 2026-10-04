@@ -14,20 +14,20 @@ sequenceDiagram
     participant Reporter
     Operator->>Launcher: Launch with input, output and LLM endpoint
     Launcher->>Guards: Install default-deny rules and drop capabilities
-    Guards-->>Launcher: Ready; capability sets verified zero
+    Guards-->>Launcher: Ready, capability sets verified zero
     Launcher->>Proxy: Start fixed-upstream proxy
     Proxy-->>Launcher: Loopback health check succeeds
     Launcher->>Runtime: Start interactive session with restricted mounts
     Operator->>Runtime: Assign bounded analysis objective
     Runtime->>Specialists: Delegate capability-specific checks
-    Note over Specialists: Run permitted tools; preserve evidence and scripts incrementally
+    Note over Specialists: Run permitted tools and preserve evidence and scripts incrementally
     Specialists-->>Runtime: Findings, evidence references and limitations
     Runtime->>Reporter: Consolidate reviewed module results
     Reporter-->>Operator: Saved findings and Markdown report
     Operator->>Runtime: Exit after checking saved results
     Runtime-->>Launcher: Exit status
     Launcher->>Guards: Remove per-run containers and networks
-    Note over Operator,Launcher: Work disappears; output and operator audit logs remain
+    Note over Operator,Launcher: Work disappears, output and operator audit logs remain
 ```
 
 ## Prepare and launch
@@ -37,6 +37,8 @@ sequenceDiagram
    [building](building.md) for prerequisites, pins and manual configuration.
 2. Start the local OpenAI-compatible LLM on a private IPv4 address reachable
    from rootless Podman. Use its exact model ID and a tool-capable model.
+   Alternatively, explicitly opt into a public HTTPS endpoint following
+   [LLM providers](llm-providers.md); assessment content then leaves your environment.
 3. Prepare separate input/output directories and, optionally, a trusted Burp
    runtime directory. Select a disjoint operator audit directory.
    To supply custom Semgrep rules or CodeQL queries, set `ANALYSIS_RULES_DIR`

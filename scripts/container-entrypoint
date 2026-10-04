@@ -35,6 +35,14 @@ jq -nc --arg run_id "$ANALYSIS_RUN_ID" --arg model "$LLM_MODEL" \
 mkdir -p "$XDG_CONFIG_HOME/opencode" /audit/work/ghidra-projects
 case "${LLM_MODEL:?LLM_MODEL is required}" in *[!A-Za-z0-9._:/-]*) echo "LLM_MODEL contains unsupported characters" >&2; exit 64;; esac
 sed "s|__LLM_MODEL__|$LLM_MODEL|g" /opt/mossback/config/opencode/opencode.json > "$XDG_CONFIG_HOME/opencode/opencode.json"
+case "${LLM_API_STYLE:-openai-compatible}" in
+  openai-compatible) provider_package=@ai-sdk/openai-compatible ;;
+  openai) provider_package=@ai-sdk/openai ;;
+  *) echo 'Unsupported LLM_API_STYLE' >&2; exit 64 ;;
+esac
+config="$XDG_CONFIG_HOME/opencode/opencode.json"
+jq --arg package "$provider_package" '.provider.mossback.npm = $package' "$config" > "$config.tmp"
+mv "$config.tmp" "$config"
 cp -R /opt/mossback/config/agents "$XDG_CONFIG_HOME/opencode/agents"
 cp /opt/mossback/config/agents-policy.md /audit/work/AGENTS.md
 event agents_configured
@@ -61,7 +69,7 @@ if [ -n "${BURP_PROJECT:-}" ]; then
     sleep 1
   done
   config="$XDG_CONFIG_HOME/opencode/opencode.json"
-  jq '.mcp.servers.burp.disabled = false' "$config" > "$config.tmp"
+  jq '.mcp.burp.enabled = true' "$config" > "$config.tmp"
   mv "$config.tmp" "$config"
   event burp_mcp_ready
 fi

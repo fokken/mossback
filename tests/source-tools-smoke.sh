@@ -4,6 +4,7 @@ test -d /opt/semgrep-rules/.git
 test -n "$(git -c safe.directory=/opt/semgrep-rules -C /opt/semgrep-rules rev-parse HEAD)"
 test -f /opt/mossback/source-tools.lock
 semgrep --version
+checkov --version
 codeql version
 codeql resolve packs --format=json > /audit/work/codeql-packs.json
 jq -e 'type == "object" and length > 0' /audit/work/codeql-packs.json >/dev/null

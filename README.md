@@ -1,6 +1,6 @@
 # mossback
 
-Offline security analysis with a local LLM, deterministic tools and durable
+Offline security analysis with a configurable LLM, deterministic tools and durable
 evidence. Run OpenCode interactively in a hardened rootless Podman container.
 Source code, binaries, saved web traffic and captures are hostile data—not
 instructions. V1 does not execute targets, scan networks or mount host credentials.
@@ -11,7 +11,7 @@ instructions. V1 does not execute targets, scan networks or mount host credentia
 flowchart LR
     Input["Artifacts and custom rules<br/>read-only"] --> Analyzer["Rootless analyzer<br/>OpenCode + tools + MCP"]
     Analyzer -->|"allowed TCP only"| Proxy["Nginx proxy"]
-    Proxy -->|"fixed private IP and port"| LLM["Local LLM"]
+    Proxy -->|"fixed IP and port"| LLM["Local LLM by default<br/>Public HTTPS API by opt-in"]
     Analyzer --> Output["Persistent output<br/>evidence, findings, scripts, reports"]
     Proxy --> Audit["Operator audit logs<br/>not mounted into analyzer"]
 ```
@@ -50,7 +50,9 @@ interactively with Nginx connecting over TCP to `LLM_HOST:LLM_PORT`. Use a
 reachable private IPv4 address; `127.0.0.1` is container loopback. See the
 [operator workflow](docs/operator-workflow.md) for task examples and result review.
 
-The universal image also includes Semgrep, a pinned clone of the community rules at `/opt/semgrep-rules`, and the CodeQL bundle with query packs. See [source tools](docs/source-tools.md) for build pins and offline commands. `BASE_IMAGE` must be a reviewed `docker.io/kalilinux/kali-rolling@sha256:…` digest; `OPENCODE_VERSION` must be an exact version compatible with the included V2 configuration.
+Public OpenAI-compatible APIs are also supported with explicit opt-in and verified HTTPS; see [LLM providers](docs/llm-providers.md). This allows assessment content to leave the local environment. Analyzer networking remains restricted to its proxy.
+
+The universal image also includes Semgrep, a pinned clone of the community rules at `/opt/semgrep-rules`, Checkov, and the CodeQL bundle with query packs. See [source tools](docs/source-tools.md) for build pins and offline commands. `BASE_IMAGE` must be a reviewed `docker.io/kalilinux/kali-rolling@sha256:…` digest; `OPENCODE_VERSION` must be an exact version compatible with the included native configuration.
 
 ## Safety invariants
 
@@ -65,7 +67,7 @@ Optional [Burp project integration](docs/burp.md) accepts a supplied Burp JAR, t
 
 | Artifacts | Tools | Specialist |
 | --- | --- | --- |
-| Source and configuration | Semgrep, community/custom rules, CodeQL | `source-analyst` |
+| Source and configuration | Semgrep, community/custom rules, CodeQL, Checkov | `source-analyst` |
 | Compiled binaries | Ghidra / PyGhidra MCP | `binary-analyst` |
 | Saved Burp projects | Optional supplied Burp runtime and MCP | `burp-analyst` |
 | PCAP / PCAPNG | TShark, capinfos, WireMCP | `pcap-analyst` |
@@ -91,6 +93,7 @@ proof that a vulnerability is confirmed.
 
 - [Build configuration](docs/building.md) — prerequisites, reviewed pins and image builds.
 - [Operator workflow](docs/operator-workflow.md) — prepare, launch, analyze and review.
+- [LLM providers](docs/llm-providers.md) — local defaults and public HTTPS opt-in.
 - [Architecture](docs/architecture.md) and [network isolation](docs/network-isolation.md) — boundaries and enforcement.
 - [Source tools and custom rules](docs/source-tools.md), [Burp](docs/burp.md), [PCAP](docs/pcap.md) — capability setup.
 - [Audit logging](docs/audit-logging.md) — persistent logs and their limitations.

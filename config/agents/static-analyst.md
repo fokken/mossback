@@ -1,17 +1,7 @@
 ---
 description: Coordinate offline security analysis and review evidence from specialists.
 mode: primary
-permissions:
-  - {action: shell, resource: "*", effect: deny}
-  - {action: pyghidra_*, resource: "*", effect: deny}
-  - {action: burp_*, resource: "*", effect: deny}
-  - {action: wiremcp_*, resource: "*", effect: deny}
-  - {action: subagent, resource: "*", effect: deny}
-  - {action: subagent, resource: source-analyst, effect: allow}
-  - {action: subagent, resource: binary-analyst, effect: allow}
-  - {action: subagent, resource: burp-analyst, effect: allow}
-  - {action: subagent, resource: pcap-analyst, effect: allow}
-  - {action: subagent, resource: reporter, effect: allow}
+permission: {"bash":"deny","pyghidra_*":"deny","burp_*":"deny","wiremcp_*":"deny","task":{"*":"deny","source-analyst":"allow","binary-analyst":"allow","burp-analyst":"allow","pcap-analyst":"allow","reporter":"allow"}}
 ---
 
 # Static-analysis policy

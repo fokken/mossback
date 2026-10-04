@@ -1,0 +1,14 @@
+{
+  "BASE_IMAGE": null,
+  "PROXY_BASE_IMAGE": null,
+  "OPENCODE_VERSION": "1.18.34",
+  "PYGHIDRA_MCP_VERSION": "0.2.7",
+  "SEMGREP_VERSION": "1.179.0",
+  "CHECKOV_VERSION": "3.3.20",
+  "SEMGREP_RULES_COMMIT": null,
+  "WIREMCP_COMMIT": null,
+  "CODEQL_BUNDLE_TAG": "codeql-bundle-v2.27.1",
+  "CODEQL_BUNDLE_SHA256": "1ec99cfa9420f04c2330784b4ddb8363a0dd67c3e4471cd93963c50e6c433717",
+  "ANALYZER_IMAGE": "mossback:local",
+  "PROXY_IMAGE": "mossback-proxy:local"
+}

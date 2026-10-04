@@ -24,6 +24,14 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("```mermaid\nsequenceDiagram", workflow)
         self.assertIn("not mounted into analyzer", (ROOT / "README.md").read_text())
 
+    def test_sequence_diagrams_avoid_unescaped_semicolons(self):
+        for document in (ROOT / "docs").glob("*.md"):
+            for diagram in re.findall(r"```mermaid\n(.*?)```", document.read_text(), re.DOTALL):
+                if diagram.startswith("sequenceDiagram"):
+                    # Mermaid uses bare semicolons as statement separators.
+                    text = re.sub(r"#(?:[0-9]+|[A-Za-z]+);", "", diagram)
+                    self.assertNotIn(";", text, document.name)
+
 
 if __name__ == "__main__":
     unittest.main()

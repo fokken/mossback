@@ -14,7 +14,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools/common"))
-from proxy_config import addresses, endpoint, firewall, nginx_config
+from proxy_config import addresses, upstream_endpoint, firewall, nginx_config
 
 
 def timestamp():
@@ -96,13 +96,21 @@ def main():
     parser.add_argument("opencode_args", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     try:
-        host, port = endpoint(os.environ.get("LLM_HOST", ""), os.environ.get("LLM_PORT", ""))
+        public_setting = os.environ.get("LLM_ALLOW_PUBLIC", "0")
+        if public_setting not in ("0", "1"):
+            raise ValueError("LLM_ALLOW_PUBLIC must be 0 or 1")
+        allow_public = public_setting == "1"
+        api_style = os.environ.get("LLM_API_STYLE", "openai-compatible")
+        if api_style not in ("openai-compatible", "openai"):
+            raise ValueError("LLM_API_STYLE must be openai-compatible or openai")
         model = os.environ.get("LLM_MODEL", "")
         if not model:
             raise ValueError("LLM_MODEL is required")
-        tls = os.environ.get("LLM_TLS", "0")
+        tls = os.environ.get("LLM_TLS", "1" if allow_public else "0")
         if tls not in ("0", "1"):
             raise ValueError("LLM_TLS must be 0 or 1")
+        host, port, server_name = upstream_endpoint(os.environ.get("LLM_HOST", ""),
+                                                   os.environ.get("LLM_PORT", ""), allow_public, tls == "1")
         subnet = os.environ.get("ANALYSIS_SUBNET", "10.203.0.0/29")
         analyzer_ip, proxy_ip = addresses(subnet, host)
         source, output = args.input.resolve(strict=True), args.output.resolve()
@@ -127,7 +135,8 @@ def main():
                 mount(path, "/check")
         run_id = "mossback-" + uuid.uuid4().hex[:16]
         config = nginx_config((ROOT / "config/proxy/nginx.conf.template").read_text(),
-                              host, port, run_id, os.environ.get("LLM_API_KEY", ""), tls == "1")
+                              host, port, run_id, os.environ.get("LLM_API_KEY", ""), tls == "1",
+                              allow_public, server_name, api_style)
     except (ValueError, OSError) as error:
         parser.error(str(error))
     os.umask(0o077)
@@ -140,13 +149,18 @@ def main():
     started = timestamp()
     metadata = dict(run_id=run_id, start_time=started, model=model, status="running",
                     llm_host=host, llm_port=port, tls=tls == "1", input=str(source), output=str(output))
+    metadata.update(llm_server_name=server_name, public_llm_opt_in=allow_public, api_style=api_style)
     if rules:
         metadata["analysis_rules_dir"] = str(rules)
     proxy_image = os.environ.get("PROXY_IMAGE", "mossback-proxy:local")
     analyzer_image = os.environ.get("ANALYZER_IMAGE", "mossback:local")
     exit_code = 1
     print(f"Run: {run_id}\nOperator audit logs: {audit}", flush=True)
-    run.event("run_started", llm_host=host, llm_port=port, model=model)
+    if allow_public:
+        print("WARNING: public LLM opt-in permits sending assessment content to the configured provider.",
+              file=sys.stderr, flush=True)
+    run.event("run_started", llm_host=host, llm_port=port, model=model,
+              public_llm_opt_in=allow_public, llm_server_name=server_name, api_style=api_style)
     (audit / "run.json").write_text(json.dumps(metadata, indent=2) + "\n")
     try:
         if run.command("info", "--format={{.Host.Security.Rootless}}").stdout.strip() != "true":
@@ -157,7 +171,7 @@ def main():
             temporary = Path(directory)
             for role in ("analyzer", "proxy"):
                 policy = temporary / f"{role}.nft"
-                policy.write_text(firewall(role, analyzer_ip, proxy_ip, host, port))
+                policy.write_text(firewall(role, analyzer_ip, proxy_ip, host, port, allow_public))
                 policy.chmod(0o644)
             nginx = temporary / "nginx.conf"
             nginx.write_text(config)
@@ -195,6 +209,7 @@ def main():
                        *mount(source, "/audit/input", True), *mount(output, "/audit/output"),
                        "--env", f"LLM_BASE_URL=http://{proxy_ip}:8080/v1", "--env", f"LLM_MODEL={model}",
                        "--env", f"ANALYSIS_RUN_ID={run_id}"]
+            command.extend(["--env", f"LLM_API_STYLE={api_style}"])
             if runtime:
                 command.extend([*mount(runtime, "/opt/burp", True), "--env", f"BURP_PROJECT={project}"])
             if rules:

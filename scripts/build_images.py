@@ -13,9 +13,10 @@ DIGEST = r"[A-Za-z0-9][A-Za-z0-9._:/-]*@sha256:[0-9a-f]{64}"
 SPECS = {
     "BASE_IMAGE": (DIGEST, "Kali image reference with reviewed SHA256 digest"),
     "PROXY_BASE_IMAGE": (DIGEST, "Debian proxy image reference with reviewed SHA256 digest"),
-    "OPENCODE_VERSION": (VERSION, "Exact OpenCode version compatible with V2 config"),
+    "OPENCODE_VERSION": (VERSION, "Exact OpenCode version supporting the native config schema"),
     "PYGHIDRA_MCP_VERSION": (VERSION, "Exact PyGhidra MCP version"),
     "SEMGREP_VERSION": (VERSION, "Exact Semgrep version"),
+    "CHECKOV_VERSION": (VERSION, "Exact Checkov version"),
     "SEMGREP_RULES_COMMIT": (r"[0-9a-f]{40}", "Reviewed community rules Git commit"),
     "WIREMCP_COMMIT": (r"[0-9a-f]{40}", "Reviewed upstream WireMCP Git commit"),
     "CODEQL_BUNDLE_TAG": (r"codeql-bundle-v[0-9]+\.[0-9]+\.[0-9]+", "CodeQL bundle release tag"),
@@ -52,7 +53,11 @@ def configure(path, existing):
     for key in ("ANALYZER_IMAGE", "PROXY_IMAGE"):
         default = existing.get(key, DEFAULTS[key])
         values[key] = input(f"{key} [{default}]: ").strip() or default
-    values = validate(values)
+    configure_values(path, validate(values))
+    print(f"Saved build settings to {path}. No images built yet.")
+
+
+def configure_values(path, values):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
@@ -65,7 +70,6 @@ def configure(path, existing):
     finally:
         if temporary and temporary.exists():
             temporary.unlink()
-    print(f"Saved build settings to {path}. No images built yet.")
 
 
 def commands(config):
@@ -86,14 +90,22 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--configure", action="store_true", help="prompt for pins and save local JSON; do not build")
     mode.add_argument("--check", action="store_true", help="validate local settings without Podman or network access")
+    mode.add_argument("--resolve-latest", action="store_true", help="resolve upstream pins over HTTPS and save JSON; do not build")
     args = parser.parse_args()
     try:
+        if args.resolve_latest:
+            from resolve_build import resolve_latest
+            values = validate(resolve_latest())
+            configure_values(args.config, values)
+            print(f"Resolved current upstream build pins to {args.config}; review before building.")
+            return 0
         if args.config.exists():
             existing = json.loads(args.config.read_text())
             if not isinstance(existing, dict):
                 raise ValueError("build configuration must be a JSON object")
         elif args.configure:
-            existing = {}
+            seed = ROOT / "mossback-build.json"
+            existing = json.loads(seed.read_text()) if seed.exists() else {}
         else:
             raise ValueError("no build configuration; run scripts/build-images --configure first")
         if args.configure:
@@ -112,7 +124,7 @@ def main():
             subprocess.run(command, check=True)
         print("Images built. Next: configure the local LLM and run the isolation smoke test.")
         return 0
-    except (ValueError, OSError, EOFError, subprocess.CalledProcessError) as error:
+    except (ValueError, OSError, EOFError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"Build failed: {error}\n")
 
 

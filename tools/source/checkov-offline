@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Offline IaC scanning with fixed settings and no external Python checks."""
+import argparse
+import os
+from pathlib import Path
+import subprocess
+
+INPUT = Path("/audit/input")
+OUTPUT = Path("/audit/output")
+CONFIG = "/opt/mossback/config/checkov/offline.yaml"
+
+
+def scan(source, output):
+    source, output = Path(source).resolve(strict=True), Path(output).resolve()
+    if not source.is_dir() or source == INPUT or INPUT not in source.parents:
+        raise ValueError("source must be a directory below /audit/input")
+    if OUTPUT not in output.parents:
+        raise ValueError("output must be a file below /audit/output")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith(("BC_", "CKV_", "PRISMA_", "CHECKOV_"))
+                   and key not in ("DOWNLOAD_EXTERNAL_MODULES", "EXTERNAL_MODULES_DIR", "PYTHONPATH", "PYTHONHOME")}
+    command = ["checkov", "--config-file", CONFIG, "--directory", str(source),
+               "--skip-download", "--skip-results-upload", "--download-external-modules", "false",
+               "--framework", "terraform", "terraform_plan", "cloudformation", "kubernetes",
+               "dockerfile", "github_actions", "gitlab_ci", "--output", "json"]
+    with output.open("x") as results, Path(str(output) + ".stderr").open("x") as errors:
+        return subprocess.run(command, stdout=results, stderr=errors, env=environment,
+                              cwd="/audit/work", timeout=300, check=False).returncode
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("source")
+    parser.add_argument("output")
+    args = parser.parse_args()
+    os.umask(0o077)
+    try:
+        return scan(args.source, args.output)
+    except (ValueError, OSError, subprocess.TimeoutExpired) as error:
+        parser.exit(2, f"Checkov scan failed: {error}\n")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

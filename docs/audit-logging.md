@@ -13,6 +13,10 @@ Each launch receives a unique `mossback-…` run ID. Logs are metadata-first; pr
   proxy/access.jsonl   # Nginx request metadata
 ```
 
+Endpoint metadata includes the pinned IPv4 address, original TLS server name,
+API style and `public_llm_opt_in`. Local-only is the default; public opt-in is
+recorded explicitly without recording the provider credential.
+
 Nginx records run ID, request ID, UTC-offset timestamp, method, allowed route,
 status, byte counts and request/upstream timings. Unknown routes are logged as
 `denied`, not the raw attacker-controlled URI/query. Authorization and request

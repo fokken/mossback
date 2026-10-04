@@ -68,3 +68,32 @@ Use prebuilt CodeQL databases or extraction modes that do not execute the projec
 CodeQL use is subject to the [GitHub CodeQL terms](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md); installation does not grant unrestricted use on private/commercial projects. Rule licenses are preserved with the checkout.
 
 Run `sh /opt/mossback/tests/source-tools-smoke.sh` inside the container to verify Semgrep execution and CodeQL pack discovery.
+
+## Checkov: offline infrastructure configuration review
+
+Supply `CHECKOV_VERSION` as an exact reviewed release. Checkov is installed in
+its own `/opt/checkov` virtual environment to avoid dependency conflicts.
+The source specialist can run:
+
+```sh
+checkov --version
+checkov-offline /audit/input/source/infrastructure \
+  /audit/output/evidence/E-CHECKOV-001.json
+```
+
+The wrapper accepts only an input directory below `/audit/input` and a new
+output file below `/audit/output`. It writes JSON plus a `.stderr` diagnostic
+file, uses an explicit trusted config, suppresses cloud downloads/uploads and
+external module downloads, clears Checkov/cloud option environment variables,
+and imposes a five-minute timeout. Supported frameworks are Terraform (including
+saved plans), CloudFormation, Kubernetes, Dockerfile, GitHub Actions and GitLab
+CI. It does not run Terraform, project builds or deployment operations.
+
+Exit code 1 can mean policy violations; preserve and investigate results rather
+than treating them as confirmed vulnerabilities. Offline scans cannot cover
+unavailable external modules or cloud-specific metadata. No external Python
+checks are loaded by this wrapper; they execute code and require separate review.
+The existing firewall remains the network boundary even if a library attempts
+communication. Review/redact scanner evidence before sharing it.
+
+Reference: [Checkov CLI options](https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html).

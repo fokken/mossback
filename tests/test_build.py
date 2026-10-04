@@ -17,7 +17,7 @@ spec.loader.exec_module(build)
 def settings():
     return dict(BASE_IMAGE="docker.io/kalilinux/kali-rolling@sha256:" + "a" * 64,
                 PROXY_BASE_IMAGE="docker.io/library/debian:bookworm-slim@sha256:" + "b" * 64,
-                OPENCODE_VERSION="1.2.3", SEMGREP_VERSION="1.2.3",
+                OPENCODE_VERSION="1.2.3", SEMGREP_VERSION="1.2.3", CHECKOV_VERSION="3.3.20",
                 SEMGREP_RULES_COMMIT="a" * 40, WIREMCP_COMMIT="b" * 40,
                 CODEQL_BUNDLE_TAG="codeql-bundle-v2.3.4", CODEQL_BUNDLE_SHA256="c" * 64)
 
@@ -75,6 +75,21 @@ class BuildTests(unittest.TestCase):
                 with self.assertRaises(SystemExit):
                     build.main()
                 self.assertEqual(run.call_count, 2)
+
+    def test_resolution_failure_does_not_overwrite_configuration(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "build.json"
+            original = json.dumps(settings())
+            destination.write_text(original)
+            resolver = SimpleNamespace(resolve_latest=lambda: {**settings(), "BASE_IMAGE": None})
+            with patch.dict(sys.modules, {"resolve_build": resolver}), \
+                    patch.object(sys, "argv", ["build-images", "--config", str(destination), "--resolve-latest"]), \
+                    patch.object(build.subprocess, "run") as run:
+                with self.assertRaises(SystemExit):
+                    build.main()
+                run.assert_not_called()
+                self.assertEqual(destination.read_text(), original)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ __pycache__
 .env
 .env.*
 .mossback-build.json
+mossback-build.json
 .mossback-build-*.tmp
 artifacts
 analysis-output

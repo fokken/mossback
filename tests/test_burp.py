@@ -1,5 +1,6 @@
 """Checks for the optional Burp capability's filesystem and tool boundaries."""
 import json
+import fnmatch
 from pathlib import Path
 import os
 import subprocess
@@ -28,17 +29,17 @@ class BurpBoundaryTests(unittest.TestCase):
 
     def test_burp_only_exposes_read_tools_by_default(self):
         config = json.loads((ROOT / "config/opencode/opencode.json").read_text())
-        self.assertTrue(config["mcp"]["servers"]["burp"]["disabled"])
-        permissions = config["permissions"]
+        self.assertFalse(config["mcp"]["burp"]["enabled"])
+        permissions = config["permission"]
         for action in ("burp_send_http1_request", "burp_send_http2_request",
                        "burp_set_user_options", "burp_set_project_options",
                        "burp_generate_collaborator_payload", "burp_unknown_future_tool"):
             effect = None
-            for rule in permissions:
-                if rule["action"] in (action, "burp_*"):
-                    effect = rule["effect"]
+            for pattern, decision in permissions.items():
+                if fnmatch.fnmatchcase(action, pattern):
+                    effect = decision
             self.assertEqual(effect, "deny", action)
-        allowed = [r["action"] for r in permissions if r["effect"] == "allow" and r["action"].startswith("burp_")]
+        allowed = [action for action, effect in permissions.items() if effect == "allow" and action.startswith("burp_")]
         self.assertTrue(allowed)
         self.assertTrue(all(action.startswith("burp_get_") for action in allowed))
 

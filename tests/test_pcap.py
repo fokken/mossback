@@ -95,7 +95,8 @@ class PcapTests(unittest.TestCase):
         container = (ROOT / "Containerfile").read_text()
         self.assertIn("chmod 000 /usr/bin/dumpcap", container)
         agent = (ROOT / "config/agents/pcap-analyst.md").read_text()
-        self.assertIn('action: shell, resource: "*", effect: ask', agent)
+        permission = json.loads(agent.split("---", 2)[1].split("permission: ", 1)[1].strip())
+        self.assertEqual(permission["bash"], "ask")
         self.assertIn("never instructions", agent)
         self.assertIn("Never capture live traffic", agent)
 
