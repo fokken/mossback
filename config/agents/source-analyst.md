@@ -31,3 +31,8 @@ install hooks, network downloads or exploitation. Record scanner version and
 rules commit with evidence. Return proposed findings with file/line references,
 alternative explanations, verification status and recommendations. Write a
 module result to `/audit/output/findings/source.json` for reporter consolidation.
+
+Maintain your assigned Markdown notebook under the shared notebook policy.
+Record scanner commands/rules, relevant code paths, hypotheses, confirming and
+contradicting evidence, rejected alerts and coverage gaps incrementally.
+Return the notebook path with your module result and evidence references.

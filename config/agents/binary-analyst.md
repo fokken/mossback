@@ -15,3 +15,8 @@ Preserve asset hash, architecture, addresses, function names and short excerpts.
 Explain decompiler uncertainty; distinguish an interesting API from a proven
 unsafe operation. Record evidence and a module result at
 `/audit/output/findings/binary.json`, with verification status and limitations.
+
+Maintain your assigned Markdown notebook under the shared notebook policy.
+Record imported binary identity, inspected functions/addresses, static checks,
+hypotheses, decompiler uncertainty and supporting/contradicting evidence.
+Return the notebook path with your module result and evidence references.

@@ -16,3 +16,8 @@ behavior visible in the project. Redact credentials and session tokens in
 persisted excerpts. A historical scanner alert alone is unverified. Preserve
 stable request references, endpoints and relevant excerpts. Write evidence and
 the module result `/audit/output/findings/burp.json` for reporter consolidation.
+
+Maintain your assigned Markdown notebook under the shared notebook policy.
+Record scoped history/finding queries, stable request references, hypotheses,
+redacted evidence, rejected scanner alerts and approval/coverage limitations.
+Return the notebook path with your module result and evidence references.

@@ -9,7 +9,7 @@ they do not prove container, firewall or agent-runtime enforcement.
 - **Output validation is permissive.** `scripts/validate-output` passes a
   nonexistent directory or absent `findings.jsonl`/`run.json`. It checks only
   selected fields in existing files, not the full schemas, evidence existence,
-  duplicate IDs, module JSON, report or preservation manifests. Some malformed
+  duplicate IDs, module JSON, report, notebooks or preservation manifests. Some malformed
   JSON value types can cause an exception rather than a validation diagnostic.
 - **Assessment metadata is incomplete.** The launcher writes an operator
   lifecycle record outside output; the entrypoint writes `run-context.json`.

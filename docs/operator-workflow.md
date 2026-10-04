@@ -75,6 +75,11 @@ on exit. Upstream connectivity is exercised when the first API request occurs.
 6. Inspect operator lifecycle/proxy logs alongside OpenCode runtime logs.
    Ensure evidence, findings and the report are saved in output before exiting;
    work databases and application session state are ephemeral.
+   Agents keep Markdown notebooks under
+   `output/notebooks/<run-id>/<agent>/<task-id>.md`, saving scope, checks,
+   evidence-linked hypotheses, rejected explanations and next steps as they work.
+   Reporter links these notebooks from `report.md`; inspect them alongside the
+   JSONL journal. Notes are prompt-required, not runtime-enforced or tamper-proof.
    Agents must incrementally save reusable scripts/queries under
    `output/scripts/<run-id>/<agent>/` and selected important intermediates under
    `output/artifacts/<run-id>/<agent>/`, with a provenance/reproduction manifest.

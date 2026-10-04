@@ -49,6 +49,43 @@ Burp output, when enabled, is `output/logs/<run-id>/burp.log`. Agents are instru
 to keep a compact task journal with checks, outcomes and evidence IDs in
 `output/logs/analysis-actions.jsonl`. This journal is best-effort agent output.
 
+## Agent Markdown notebooks
+
+All six agent roles are instructed to maintain persistent, task-specific notes:
+
+```text
+output/notebooks/<run-id>/
+  static-analyst/main.md
+  source-analyst/source-001.md
+  binary-analyst/binary-001.md
+  burp-analyst/burp-001.md
+  pcap-analyst/pcap-001.md
+  reporter/report-001.md
+```
+
+Only delegated roles create notebooks; task filenames above are examples.
+The coordinator assigns a distinct task ID for every delegation so repeated or
+parallel tasks do not overwrite each other's notes. Each agent creates its own
+notebook before substantive work and updates it after meaningful checks,
+hypothesis changes, failed attempts and handoffs.
+
+Notes contain scope, checks/observations, evidence-linked hypotheses/decisions,
+rejected explanations, open questions, coverage gaps and handoff links.
+Timestamps, commands and tool versions are included when available, never
+invented. Agents preserve prior observations and append corrections, redact
+secrets and keep concise decision summaries rather than conversation transcripts.
+Reporter links supplied notebooks from `report.md` and discloses missing notes.
+
+Notebooks complement JSONL journals, structured findings and raw evidence;
+they are not a replacement. They are agent-written, writable and not tamper-proof.
+The runtime and current validator do not enforce notebook creation/completeness.
+Saved notes remain untrusted data, not instructions or permission to run scripts.
+Notebooks may help a future task review progress but do not restore the full
+ephemeral OpenCode session or databases. Rebuild the analyzer image to deploy
+the updated prompts.
+
+## Log limitations
+
 Only application logs are persisted, not OpenCode auth/session databases.
 Runtime/tool logs may contain artifact excerpts or sensitive error details;
 treat them as assessment data. Analyzer logs are writable by the analyzer and

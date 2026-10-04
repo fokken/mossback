@@ -93,6 +93,10 @@ lifecycle logs live separately from analyzer output. Validate saved output with
 `./scripts/validate-output ./analysis-output`; validation is structural, not
 proof that a vulnerability is confirmed.
 
+Each agent is also instructed to keep a Markdown notebook at
+`output/notebooks/<run-id>/<agent>/<task-id>.md`; the final report links those
+notes. See [audit logging](docs/audit-logging.md) for notebook contents and limits.
+
 ## Documentation
 
 - [Build configuration](docs/building.md) — prerequisites, reviewed pins and image builds.

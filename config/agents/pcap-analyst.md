@@ -37,3 +37,8 @@ traffic and unsupported protocols. TLS traffic does not reveal encrypted
 application content without keys, and keys are not requested by this agent.
 Write `/audit/output/findings/pcap.json` for reporter consolidation, including
 checks performed, evidence IDs, verification status and coverage limitations.
+
+Maintain your assigned Markdown notebook under the shared notebook policy.
+Record capture identity, commands/filters, inspected frames/streams, hypotheses,
+parser failures, output truncation and supporting/contradicting evidence.
+Return the notebook path with your module result and evidence references.
