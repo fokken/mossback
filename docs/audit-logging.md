@@ -17,6 +17,14 @@ Endpoint metadata includes the pinned IPv4 address, original TLS server name,
 API style and `public_llm_opt_in`. Local-only is the default; public opt-in is
 recorded explicitly without recording the provider credential.
 
+This operator `run.json` is a lifecycle record, **not** an instance of
+`schemas/run.schema.json`: it lacks assessment fields such as `timestamp` and
+`analysis_modules`, and contains endpoint/lifecycle fields instead. The
+entrypoint separately writes `output/run-context.json` with run ID and model.
+Schema-compatible `output/run.json`, tool-version inventories and input hashes
+are not currently generated automatically. Do not copy the operator record
+into output and assume it satisfies the assessment schema.
+
 Nginx records run ID, request ID, UTC-offset timestamp, method, allowed route,
 status, byte counts and request/upstream timings. Unknown routes are logged as
 `denied`, not the raw attacker-controlled URI/query. Authorization and request
@@ -46,3 +54,8 @@ Runtime/tool logs may contain artifact excerpts or sensitive error details;
 treat them as assessment data. Analyzer logs are writable by the analyzer and
 are not tamper-proof. Native logs and timestamps provide useful flow visibility,
 but do not guarantee an exhaustive, request-by-request tool transcript.
+
+`completed` in operator metadata means the foreground process exited with code
+zero, not that findings or the report are complete. Cleanup commands are
+best-effort; `cleanup_completed` means they were attempted, not that all Podman
+removals succeeded. Check for leftover resources after an interrupted/failed run.

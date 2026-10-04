@@ -4,6 +4,6 @@ The entrypoint copies native OpenCode configuration and Markdown agents into the
 
 Pin `OPENCODE_VERSION` during the image build and verify the configuration against that release. The provider uses OpenAI-compatible `/v1` semantics; the API credential is injected by Nginx, not passed to OpenCode or MCP servers.
 
-The bundled `pyghidra` MCP server runs locally over stdio. It writes its Ghidra project data only below `/audit/work/ghidra-projects`; its binary inputs must be selected from `/audit/input`.
+The bundled `pyghidra` MCP server runs locally over stdio. Its configured project directory is `/audit/work/ghidra-projects`; agents must select binary inputs from `/audit/input`. This is configuration and agent policy, not server-enforced filesystem confinement.
 
-The default static-analyst coordinates source-analyst, binary-analyst, burp-analyst and reporter. These runtime permissions do not create separate OS sandboxes within the universal image. Source shell commands require operator approval. See `config/agents-policy.md` for evidence and audit expectations.
+The default static-analyst coordinates source-analyst, binary-analyst, burp-analyst, pcap-analyst and reporter. Source and PCAP shell commands require operator approval. WireMCP is denied globally; only pcap-analyst permits its saved-capture analysis tool. These runtime permissions do not create separate OS sandboxes within the universal image. See `config/agents-policy.md` for evidence and audit expectations and [verification gaps](../../docs/verification.md) before deployment.

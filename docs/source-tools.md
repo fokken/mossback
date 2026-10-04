@@ -4,9 +4,12 @@ Downloads happen only during image construction. Semgrep is installed in its own
 
 ## Build inputs
 
-Supply these environment variables before running the README build command:
+Set these pins in the build-helper JSON, or export them when using the manual
+build commands in [building](building.md). The helper builds from its selected
+JSON, not directly from your shell environment:
 
 - `SEMGREP_VERSION`: exact Semgrep release from [PyPI](https://pypi.org/project/semgrep/).
+- `CHECKOV_VERSION`: exact Checkov release from [PyPI](https://pypi.org/project/checkov/).
 - `SEMGREP_RULES_COMMIT`: reviewed 40-character commit from the community rules repository.
 - `CODEQL_BUNDLE_TAG`: release tag such as `codeql-bundle-v2.23.0`, from [github/codeql-action releases](https://github.com/github/codeql-action/releases).
 - `CODEQL_BUNDLE_SHA256`: trusted SHA256 for that release's `codeql-bundle-linux64.tar.zst` (amd64) or `codeql-bundle-linux-arm64.tar.zst` (arm64). Obtain it from the release metadata through a trusted channel.
@@ -67,7 +70,7 @@ Use prebuilt CodeQL databases or extraction modes that do not execute the projec
 
 CodeQL use is subject to the [GitHub CodeQL terms](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md); installation does not grant unrestricted use on private/commercial projects. Rule licenses are preserved with the checkout.
 
-Run `sh /opt/mossback/tests/source-tools-smoke.sh` inside the container to verify Semgrep execution and CodeQL pack discovery.
+Run `sh /opt/mossback/tests/source-tools-smoke.sh` inside the container to verify Semgrep execution, Checkov version reporting and CodeQL pack discovery. This does not exercise a Checkov scan.
 
 ## Checkov: offline infrastructure configuration review
 

@@ -49,6 +49,7 @@ sequenceDiagram
 export LLM_HOST=192.168.1.50
 export LLM_PORT=8080
 export LLM_MODEL=your-model
+export LLM_ALLOW_PUBLIC=0 LLM_TLS=0 LLM_API_STYLE=openai-compatible
 export AUDIT_LOG_DIR=/absolute/path/operator-audit
 # Optional: LLM_API_KEY; LLM_TLS=1 for verified upstream HTTPS.
 ./scripts/run-analysis ./artifacts ./analysis-output
@@ -79,11 +80,14 @@ on exit. Upstream connectivity is exercised when the first API request occurs.
    `output/artifacts/<run-id>/<agent>/`, with a provenance/reproduction manifest.
    Review these exports as untrusted assessment data; saving a script does not
    authorize running it. Bulk databases/caches remain ephemeral by default.
+
 ## Review and validate
 
 7. Run `./scripts/validate-output ./analysis-output` and review the conclusions.
    The current validator performs partial structural checks on existing files;
-   it does not guarantee completeness or confirm vulnerabilities.
+   it even passes a missing directory or missing required outputs. Independently
+   check that findings, evidence, report and assessment metadata exist. See
+   [verification gaps](verification.md); validation does not confirm vulnerabilities.
 
 For Burp, additionally set `BURP_RUNTIME_DIR` and container-path `BURP_PROJECT`
 as documented in `docs/burp.md`. The MCP extension and licensing preparation

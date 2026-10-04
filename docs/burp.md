@@ -1,6 +1,6 @@
 # Burp project analysis
 
-Burp is optional in the universal image. Supply trusted software separately from assessment artifacts. The launcher mounts the software read-only at `/opt/burp`; Burp runs inside the same network-disabled container as OpenCode. No ports are published, display sockets mounted, or target access granted.
+Burp is optional in the universal image. Supply trusted software separately from assessment artifacts. The launcher mounts the software read-only at `/opt/burp`; Burp runs inside the same network-restricted container as OpenCode, with loopback and the LLM proxy reachable. No ports are published, display sockets mounted, or target access granted.
 
 ## Supply the runtime
 
@@ -13,6 +13,12 @@ burp-runtime/
   mcp-proxy-all.jar    # Matching SSE-to-stdio proxy
 ```
 
+Keep this directory disjoint from input, output, custom rules and operator logs.
+The launcher currently rejects overlaps with input, rules and operator logs,
+but **does not reject output overlap**. Check this yourself before running;
+a read-only runtime mount is not protected if the same host files are also
+reachable through writable output. See [verification gaps](verification.md).
+
 Use matching reviewed builds of [PortSwigger/mcp-server](https://github.com/PortSwigger/mcp-server). The Burp application JAR alone does not provide MCP. The extension exposes a local SSE server; its proxy provides OpenCode's stdio connection. Ghidra's installed JDK supplies Java; verify compatibility with your Burp release.
 
 ```sh
@@ -22,7 +28,7 @@ LLM_HOST=192.168.1.50 LLM_PORT=8080 LLM_MODEL=your-model \
   ./scripts/run-analysis ./artifacts ./analysis-output
 ```
 
-`BURP_PROJECT` is a container path under `/audit/input`. Symlinks resolving outside that area are rejected. The launcher copies the project to `/audit/work/burp/project.burp` and loads that copy, leaving the original read-only. The copy and temporary state disappear when the container exits; Burp diagnostics persist in `/audit/output/logs/<run-id>/burp.log`.
+`BURP_PROJECT` is a container path under `/audit/input`. Symlinks resolving outside that area are rejected. The container's `start-burp` script copies the project to `/audit/work/burp/project.burp` and loads that copy, leaving the original read-only. The copy and temporary state disappear when the container exits; Burp diagnostics persist in `/audit/output/logs/<run-id>/burp.log`.
 
 ## Configuration
 

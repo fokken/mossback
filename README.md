@@ -107,3 +107,6 @@ proof that a vulnerability is confirmed.
 Run `./tests/bootstrap.sh` for local checks. Image builds, firewall integration
 and the full OpenCode/MCP workflow still require deployment-host verification.
 Known upstream MCP limitations are documented, not treated as resolved.
+See [verification gaps and deployment checklist](docs/verification.md) for
+known validation, configuration and mount limitations. A passing local test
+suite is not a deployment-readiness guarantee.
