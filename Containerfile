@@ -23,8 +23,8 @@ RUN test -n "$OPENCODE_VERSION" && test -n "$PYGHIDRA_MCP_VERSION" \
  && apt-get purge -y --auto-remove npm \
  && rm -rf /var/lib/apt/lists/* /root/.npm /root/.cache
 
-COPY scripts/install-source-tools /opt/security-ai/install-source-tools
-RUN sh /opt/security-ai/install-source-tools
+COPY scripts/install-source-tools /opt/mossback/install-source-tools
+RUN sh /opt/mossback/install-source-tools
 ENV PATH="/opt/semgrep/bin:/opt/codeql:${PATH}" \
     SEMGREP_RULES_DIR=/opt/semgrep-rules \
     SEMGREP_SEND_METRICS=off \
@@ -34,14 +34,14 @@ RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin analyst \
  && mkdir -p /audit/input /audit/work /audit/output /run/llm \
  && chown -R analyst:analyst /audit /run/llm
 
-COPY --chown=analyst:analyst config /opt/security-ai/config
-COPY schemas /opt/security-ai/schemas
+COPY --chown=analyst:analyst config /opt/mossback/config
+COPY schemas /opt/mossback/schemas
 COPY --chown=analyst:analyst scripts/container-entrypoint /usr/local/bin/container-entrypoint
 COPY tools/source/semgrep-offline /usr/local/bin/semgrep-offline
 COPY scripts/start-burp /usr/local/bin/start-burp
-COPY tests/source-tools-smoke.sh /opt/security-ai/tests/source-tools-smoke.sh
-COPY tests/fixtures /opt/security-ai/tests/fixtures
-COPY tests/network-probe.py /opt/security-ai/tests/network-probe.py
+COPY tests/source-tools-smoke.sh /opt/mossback/tests/source-tools-smoke.sh
+COPY tests/fixtures /opt/mossback/tests/fixtures
+COPY tests/network-probe.py /opt/mossback/tests/network-probe.py
 RUN chmod 0555 /usr/local/bin/container-entrypoint
 RUN chmod 0555 /usr/local/bin/semgrep-offline
 RUN chmod 0555 /usr/local/bin/start-burp

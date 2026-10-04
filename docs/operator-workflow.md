@@ -1,7 +1,7 @@
 # Operator workflow
 
-1. Build `security-ai:local` with the pinned tool inputs documented in README
-   and `docs/source-tools.md`. Build `security-ai-proxy:local` from
+1. Build `mossback:local` with the pinned tool inputs documented in README
+   and `docs/source-tools.md`. Build `mossback-proxy:local` from
    `Containerfile.proxy` with a reviewed `PROXY_BASE_IMAGE` digest.
 2. Start the local OpenAI-compatible LLM on a private IPv4 address reachable
    from rootless Podman. Use its exact model ID and a tool-capable model.

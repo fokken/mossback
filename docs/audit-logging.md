@@ -1,6 +1,6 @@
 # Audit logging
 
-Each launch receives a unique `security-ai-…` run ID. Logs are metadata-first; prompt/response body capture is not enabled. No debug logging, header dumps or authorization values are added by the proxy.
+Each launch receives a unique `mossback-…` run ID. Logs are metadata-first; prompt/response body capture is not enabled. No debug logging, header dumps or authorization values are added by the proxy.
 
 ## Operator-owned logs
 

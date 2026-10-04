@@ -11,7 +11,7 @@ Supply these environment variables before running the README build command:
 - `CODEQL_BUNDLE_TAG`: release tag such as `codeql-bundle-v2.23.0`, from [github/codeql-action releases](https://github.com/github/codeql-action/releases).
 - `CODEQL_BUNDLE_SHA256`: trusted SHA256 for that release's `codeql-bundle-linux64.tar.zst` (amd64) or `codeql-bundle-linux-arm64.tar.zst` (arm64). Obtain it from the release metadata through a trusted channel.
 
-The build fails on missing pins or a mismatched checksum. CodeQL includes compatible, precompiled query packs so no runtime pack download is required. Selected rules and bundle identifiers are recorded in `/opt/security-ai/source-tools.lock`. Apt and Python transitive dependencies are still resolved during the build; these pins alone do not guarantee byte-for-byte reproducibility.
+The build fails on missing pins or a mismatched checksum. CodeQL includes compatible, precompiled query packs so no runtime pack download is required. Selected rules and bundle identifiers are recorded in `/opt/mossback/source-tools.lock`. Apt and Python transitive dependencies are still resolved during the build; these pins alone do not guarantee byte-for-byte reproducibility.
 
 ## Interactive usage
 
@@ -33,4 +33,4 @@ Use prebuilt CodeQL databases or extraction modes that do not execute the projec
 
 CodeQL use is subject to the [GitHub CodeQL terms](https://github.com/github/codeql-cli-binaries/blob/main/LICENSE.md); installation does not grant unrestricted use on private/commercial projects. Rule licenses are preserved with the checkout.
 
-Run `sh /opt/security-ai/tests/source-tools-smoke.sh` inside the container to verify Semgrep execution and CodeQL pack discovery.
+Run `sh /opt/mossback/tests/source-tools-smoke.sh` inside the container to verify Semgrep execution and CodeQL pack discovery.

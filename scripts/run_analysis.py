@@ -120,7 +120,7 @@ def main():
         for path in (source, output, audit_parent, runtime):
             if path:
                 mount(path, "/check")
-        run_id = "security-ai-" + uuid.uuid4().hex[:16]
+        run_id = "mossback-" + uuid.uuid4().hex[:16]
         config = nginx_config((ROOT / "config/proxy/nginx.conf.template").read_text(),
                               host, port, run_id, os.environ.get("LLM_API_KEY", ""), tls == "1")
     except (ValueError, OSError) as error:
@@ -135,8 +135,8 @@ def main():
     started = timestamp()
     metadata = dict(run_id=run_id, start_time=started, model=model, status="running",
                     llm_host=host, llm_port=port, tls=tls == "1", input=str(source), output=str(output))
-    proxy_image = os.environ.get("PROXY_IMAGE", "security-ai-proxy:local")
-    analyzer_image = os.environ.get("ANALYZER_IMAGE", "security-ai:local")
+    proxy_image = os.environ.get("PROXY_IMAGE", "mossback-proxy:local")
+    analyzer_image = os.environ.get("ANALYZER_IMAGE", "mossback:local")
     exit_code = 1
     print(f"Run: {run_id}\nOperator audit logs: {audit}", flush=True)
     run.event("run_started", llm_host=host, llm_port=port, model=model)
@@ -146,7 +146,7 @@ def main():
             raise RuntimeError("rootless Podman is required")
         for image in (proxy_image, analyzer_image):
             run.command("image", "exists", image)
-        with tempfile.TemporaryDirectory(prefix="security-ai-proxy-") as directory:
+        with tempfile.TemporaryDirectory(prefix="mossback-proxy-") as directory:
             temporary = Path(directory)
             for role in ("analyzer", "proxy"):
                 policy = temporary / f"{role}.nft"
@@ -191,7 +191,7 @@ def main():
             if runtime:
                 command.extend([*mount(runtime, "/opt/burp", True), "--env", f"BURP_PROJECT={project}"])
             if args.check_isolation:
-                command.extend(["--entrypoint=python3", analyzer_image, "/opt/security-ai/tests/network-probe.py",
+                command.extend(["--entrypoint=python3", analyzer_image, "/opt/mossback/tests/network-probe.py",
                                 proxy_ip, host, str(port), str(ipaddress.ip_network(subnet).network_address + 1)])
             else:
                 command.extend([analyzer_image, *args.opencode_args])

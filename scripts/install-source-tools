@@ -29,7 +29,7 @@ rm "$archive"
 test -x /opt/codeql/codeql
 /opt/codeql/codeql version
 /opt/codeql/codeql resolve packs
-mkdir -p /opt/security-ai
+mkdir -p /opt/mossback
 printf 'semgrep-rules=%s\ncodeql-bundle=%s\ncodeql-sha256=%s\n' \
   "$SEMGREP_RULES_COMMIT" "$CODEQL_BUNDLE_TAG" "$CODEQL_BUNDLE_SHA256" \
-  > /opt/security-ai/source-tools.lock
+  > /opt/mossback/source-tools.lock

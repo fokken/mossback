@@ -34,9 +34,9 @@ jq -nc --arg run_id "$ANALYSIS_RUN_ID" --arg model "$LLM_MODEL" \
   '{run_id: $run_id, model: $model}' > /audit/output/run-context.json
 mkdir -p "$XDG_CONFIG_HOME/opencode" /audit/work/ghidra-projects
 case "${LLM_MODEL:?LLM_MODEL is required}" in *[!A-Za-z0-9._:/-]*) echo "LLM_MODEL contains unsupported characters" >&2; exit 64;; esac
-sed "s|__LLM_MODEL__|$LLM_MODEL|g" /opt/security-ai/config/opencode/opencode.json > "$XDG_CONFIG_HOME/opencode/opencode.json"
-cp -R /opt/security-ai/config/agents "$XDG_CONFIG_HOME/opencode/agents"
-cp /opt/security-ai/config/agents-policy.md /audit/work/AGENTS.md
+sed "s|__LLM_MODEL__|$LLM_MODEL|g" /opt/mossback/config/opencode/opencode.json > "$XDG_CONFIG_HOME/opencode/opencode.json"
+cp -R /opt/mossback/config/agents "$XDG_CONFIG_HOME/opencode/agents"
+cp /opt/mossback/config/agents-policy.md /audit/work/AGENTS.md
 event agents_configured
 
 if [ -n "${BURP_PROJECT:-}" ]; then
@@ -44,8 +44,8 @@ if [ -n "${BURP_PROJECT:-}" ]; then
   event burp_starting
   start-burp > "$audit_dir/burp.log" 2>&1 &
   burp_pid=$!
-  timeout=$(jq -er '.startup_timeout_seconds' /opt/security-ai/config/burp/launch.json)
-  url=$(jq -er '.mcp_url' /opt/security-ai/config/burp/launch.json)
+  timeout=$(jq -er '.startup_timeout_seconds' /opt/mossback/config/burp/launch.json)
+  url=$(jq -er '.mcp_url' /opt/mossback/config/burp/launch.json)
   attempts=0
   burp_ready() {
     # SSE streams stay open: curl timing out after receiving headers is normal.

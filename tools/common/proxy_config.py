@@ -62,7 +62,7 @@ def firewall(role, analyzer, proxy, host, port):
         outbound = f"ip daddr {host} tcp dport {port} accept"
     else:
         raise ValueError("unknown firewall role")
-    return f"""table inet security_ai {{
+    return f"""table inet mossback {{
   chain input {{
     type filter hook input priority 0; policy drop;
     iifname "lo" accept

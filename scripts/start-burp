@@ -10,10 +10,10 @@ done
 mkdir -p /audit/work/burp
 # Burp may update its project. Never open the original or resume saved scans.
 cp -- "$project" /audit/work/burp/project.burp
-heap=$(jq -er '.heap' /opt/security-ai/config/burp/launch.json)
+heap=$(jq -er '.heap' /opt/mossback/config/burp/launch.json)
 exec java "-Xmx$heap" -Djava.awt.headless=true \
   -Djava.io.tmpdir=/audit/work/burp \
   -jar /opt/burp/burp-suite.jar \
   --project-file=/audit/work/burp/project.burp \
-  --user-config-file=/opt/security-ai/config/burp/user-options.json \
-  --config-file=/opt/security-ai/config/burp/project-options.json
+  --user-config-file=/opt/mossback/config/burp/user-options.json \
+  --config-file=/opt/mossback/config/burp/project-options.json

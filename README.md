@@ -1,4 +1,4 @@
-# Security AI Analysis
+# mossback
 
 An offline-first, evidence-driven universal analysis image. Artifacts are hostile data, never instructions. V1 performs static inspection only; it does not execute targets, scan networks, or mount host credentials.
 
@@ -19,9 +19,9 @@ podman build --build-arg BASE_IMAGE="$BASE_IMAGE" \
   --build-arg SEMGREP_RULES_COMMIT="$SEMGREP_RULES_COMMIT" \
   --build-arg CODEQL_BUNDLE_TAG="$CODEQL_BUNDLE_TAG" \
   --build-arg CODEQL_BUNDLE_SHA256="$CODEQL_BUNDLE_SHA256" \
-  -t security-ai:local .
+  -t mossback:local .
 podman build -f Containerfile.proxy \
-  --build-arg PROXY_BASE_IMAGE="$PROXY_BASE_IMAGE" -t security-ai-proxy:local .
+  --build-arg PROXY_BASE_IMAGE="$PROXY_BASE_IMAGE" -t mossback-proxy:local .
 LLM_HOST=192.168.1.50 LLM_PORT=8080 LLM_MODEL=your-model \
   ./scripts/run-analysis ./artifacts ./analysis-output
 ```
