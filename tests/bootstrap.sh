@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-for file in scripts/run-analysis scripts/container-entrypoint; do
+for file in scripts/run-analysis scripts/container-entrypoint scripts/build-images; do
   sh -n "$file"
 done
 python3 -m json.tool config/opencode/opencode.json >/dev/null

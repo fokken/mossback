@@ -1,6 +1,23 @@
 # mossback
 
-An offline-first, evidence-driven universal analysis image. Artifacts are hostile data, never instructions. V1 performs static inspection only; it does not execute targets, scan networks, or mount host credentials.
+Offline security analysis with a local LLM, deterministic tools and durable
+evidence. Run OpenCode interactively in a hardened rootless Podman container.
+Source code, binaries, saved web traffic and captures are hostile data—not
+instructions. V1 does not execute targets, scan networks or mount host credentials.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+    Input["Artifacts and custom rules<br/>read-only"] --> Analyzer["Rootless analyzer<br/>OpenCode + tools + MCP"]
+    Analyzer -->|"allowed TCP only"| Proxy["Nginx proxy"]
+    Proxy -->|"fixed private IP and port"| LLM["Local LLM"]
+    Analyzer --> Output["Persistent output<br/>evidence, findings, scripts, reports"]
+    Proxy --> Audit["Operator audit logs<br/>not mounted into analyzer"]
+```
+
+Responses return over established connections. Default-deny namespace firewalls
+enforce the network paths. See [architecture and trust boundaries](docs/architecture.md).
 
 ## Layout
 
@@ -8,24 +25,30 @@ An offline-first, evidence-driven universal analysis image. Artifacts are hostil
 
 ## Quick start
 
-Build with immutable inputs (replace the example digest and version with reviewed values):
+Use the build helper to collect reviewed digests, versions, Git commits and the
+architecture-specific CodeQL checksum. It saves local settings without sourcing
+shell code or including LLM credentials:
 
 ```sh
-podman build --build-arg BASE_IMAGE="$BASE_IMAGE" \
-  --build-arg OPENCODE_VERSION="$OPENCODE_VERSION" \
-  --build-arg SEMGREP_VERSION="$SEMGREP_VERSION" \
-  --build-arg SEMGREP_RULES_COMMIT="$SEMGREP_RULES_COMMIT" \
-  --build-arg WIREMCP_COMMIT="$WIREMCP_COMMIT" \
-  --build-arg CODEQL_BUNDLE_TAG="$CODEQL_BUNDLE_TAG" \
-  --build-arg CODEQL_BUNDLE_SHA256="$CODEQL_BUNDLE_SHA256" \
-  -t mossback:local .
-podman build -f Containerfile.proxy \
-  --build-arg PROXY_BASE_IMAGE="$PROXY_BASE_IMAGE" -t mossback-proxy:local .
-LLM_HOST=192.168.1.50 LLM_PORT=8080 LLM_MODEL=your-model \
-  ./scripts/run-analysis ./artifacts ./analysis-output
+./scripts/build-images --configure
+./scripts/build-images --check
+./scripts/build-images
 ```
 
-This opens OpenCode interactively with a separate Nginx proxy connecting over TCP to `LLM_HOST:LLM_PORT`. Set `PROXY_BASE_IMAGE` to a reviewed Debian slim digest (for example, `docker.io/library/debian:bookworm-slim@sha256:…`). `LLM_HOST` must be a reachable private IPv4 address; `127.0.0.1` inside the proxy refers to the proxy itself. See [network isolation](docs/network-isolation.md) and [operator workflow](docs/operator-workflow.md).
+See [build configuration](docs/building.md) for prerequisites and pin selection.
+Prepare the assessment directories, then launch with your local LLM endpoint:
+
+```sh
+mkdir -p artifacts/source analysis-output
+export LLM_HOST=192.168.1.50 LLM_PORT=8080 LLM_MODEL=your-model
+./scripts/run-analysis --check-isolation ./artifacts ./analysis-output
+./scripts/run-analysis ./artifacts ./analysis-output
+```
+
+Place assessment files in `artifacts/` before analysis. This opens OpenCode
+interactively with Nginx connecting over TCP to `LLM_HOST:LLM_PORT`. Use a
+reachable private IPv4 address; `127.0.0.1` is container loopback. See the
+[operator workflow](docs/operator-workflow.md) for task examples and result review.
 
 The universal image also includes Semgrep, a pinned clone of the community rules at `/opt/semgrep-rules`, and the CodeQL bundle with query packs. See [source tools](docs/source-tools.md) for build pins and offline commands. `BASE_IMAGE` must be a reviewed `docker.io/kalilinux/kali-rolling@sha256:…` digest; `OPENCODE_VERSION` must be an exact version compatible with the included V2 configuration.
 
@@ -37,3 +60,43 @@ WireMCP and a dedicated agent to inspect saved traffic without live capture.
 Optional [Burp project integration](docs/burp.md) accepts a supplied Burp JAR, the PortSwigger MCP extension and proxy, and opens a temporary copy of a project for offline history/finding inspection.
 
 `run-analysis` refuses non-rootless Podman. Analyzer and Nginx run with no capabilities, read-only root filesystems, default seccomp, no-new-privileges and resource limits. Namespace firewalls allow only analyzer → proxy and proxy → configured LLM connections. Guards temporarily use NET_ADMIN and SETPCAP to install those firewalls, then drop every capability before applications start. No host/runtime sockets or host credentials are mounted. See [audit logging](docs/audit-logging.md).
+
+## Analysis capabilities
+
+| Artifacts | Tools | Specialist |
+| --- | --- | --- |
+| Source and configuration | Semgrep, community/custom rules, CodeQL | `source-analyst` |
+| Compiled binaries | Ghidra / PyGhidra MCP | `binary-analyst` |
+| Saved Burp projects | Optional supplied Burp runtime and MCP | `burp-analyst` |
+| PCAP / PCAPNG | TShark, capinfos, WireMCP | `pcap-analyst` |
+
+`static-analyst` coordinates bounded tasks; `reporter` consolidates reviewed
+findings. Tool permissions follow agent roles, not separate per-agent OS sandboxes.
+
+## Storage and results
+
+| Container path | Purpose | Lifetime |
+| --- | --- | --- |
+| `/audit/input` | Original artifacts, read-only | Host-owned |
+| `/audit/work` | Databases, caches and temporary sessions | Deleted on exit |
+| `/audit/output` | Findings, evidence, scripts, selected exports and logs | Persistent |
+| `/audit/rules` | Optional operator-supplied rules, read-only | Host-owned |
+
+Agents must preserve important results incrementally. Operator-owned proxy and
+lifecycle logs live separately from analyzer output. Validate saved output with
+`./scripts/validate-output ./analysis-output`; validation is structural, not
+proof that a vulnerability is confirmed.
+
+## Documentation
+
+- [Build configuration](docs/building.md) — prerequisites, reviewed pins and image builds.
+- [Operator workflow](docs/operator-workflow.md) — prepare, launch, analyze and review.
+- [Architecture](docs/architecture.md) and [network isolation](docs/network-isolation.md) — boundaries and enforcement.
+- [Source tools and custom rules](docs/source-tools.md), [Burp](docs/burp.md), [PCAP](docs/pcap.md) — capability setup.
+- [Audit logging](docs/audit-logging.md) — persistent logs and their limitations.
+
+## Verification status
+
+Run `./tests/bootstrap.sh` for local checks. Image builds, firewall integration
+and the full OpenCode/MCP workflow still require deployment-host verification.
+Known upstream MCP limitations are documented, not treated as resolved.

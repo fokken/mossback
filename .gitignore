@@ -12,3 +12,5 @@ burp-runtime/
 *.jar
 *.burp
 .repository.git/
+.mossback-build.json
+.mossback-build-*.tmp
