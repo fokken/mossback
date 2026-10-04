@@ -15,6 +15,7 @@ podman build --build-arg BASE_IMAGE="$BASE_IMAGE" \
   --build-arg OPENCODE_VERSION="$OPENCODE_VERSION" \
   --build-arg SEMGREP_VERSION="$SEMGREP_VERSION" \
   --build-arg SEMGREP_RULES_COMMIT="$SEMGREP_RULES_COMMIT" \
+  --build-arg WIREMCP_COMMIT="$WIREMCP_COMMIT" \
   --build-arg CODEQL_BUNDLE_TAG="$CODEQL_BUNDLE_TAG" \
   --build-arg CODEQL_BUNDLE_SHA256="$CODEQL_BUNDLE_SHA256" \
   -t mossback:local .
@@ -30,8 +31,8 @@ The universal image also includes Semgrep, a pinned clone of the community rules
 
 ## Safety invariants
 
-[Offline PCAP/PCAPNG analysis](docs/pcap.md) uses TShark, capinfos and a dedicated
-agent to inspect saved traffic and export bounded evidence without live capture.
+[Offline PCAP/PCAPNG analysis](docs/pcap.md) uses TShark, capinfos, upstream
+WireMCP and a dedicated agent to inspect saved traffic without live capture.
 
 Optional [Burp project integration](docs/burp.md) accepts a supplied Burp JAR, the PortSwigger MCP extension and proxy, and opens a temporary copy of a project for offline history/finding inspection.
 

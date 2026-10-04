@@ -6,6 +6,7 @@ permissions:
   - {action: subagent, resource: "*", effect: deny}
   - {action: pyghidra_*, resource: "*", effect: deny}
   - {action: burp_*, resource: "*", effect: deny}
+  - {action: wiremcp_*, resource: "*", effect: deny}
   - {action: read, resource: "*", effect: deny}
   - {action: read, resource: "/audit/output/**", effect: allow}
   - {action: read, resource: "/opt/mossback/schemas/**", effect: allow}

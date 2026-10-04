@@ -8,14 +8,18 @@ ARG SEMGREP_VERSION
 ARG SEMGREP_RULES_COMMIT
 ARG CODEQL_BUNDLE_TAG
 ARG CODEQL_BUNDLE_SHA256
+ARG WIREMCP_COMMIT
+COPY scripts/install-wiremcp /opt/mossback/install-wiremcp
 RUN test -n "$OPENCODE_VERSION" && test -n "$PYGHIDRA_MCP_VERSION" \
  && test -n "$SEMGREP_VERSION" && test -n "$SEMGREP_RULES_COMMIT" \
  && test -n "$CODEQL_BUNDLE_TAG" && test -n "$CODEQL_BUNDLE_SHA256" \
+ && test -n "$WIREMCP_COMMIT" \
  && apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       binutils binwalk ca-certificates curl file ghidra git jq libimage-exiftool-perl nodejs npm \
       python3 python3-venv radare2 rizin ripgrep socat tshark wireshark-common yara zstd \
  && npm install --global --ignore-scripts "opencode-ai@${OPENCODE_VERSION}" \
+ && sh /opt/mossback/install-wiremcp \
  && python3 -m venv /opt/pyghidra-mcp \
  && /opt/pyghidra-mcp/bin/pip install --no-cache-dir "pyghidra-mcp==${PYGHIDRA_MCP_VERSION}" \
  && python3 -m venv /opt/semgrep \

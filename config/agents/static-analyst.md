@@ -5,6 +5,7 @@ permissions:
   - {action: shell, resource: "*", effect: deny}
   - {action: pyghidra_*, resource: "*", effect: deny}
   - {action: burp_*, resource: "*", effect: deny}
+  - {action: wiremcp_*, resource: "*", effect: deny}
   - {action: subagent, resource: "*", effect: deny}
   - {action: subagent, resource: source-analyst, effect: allow}
   - {action: subagent, resource: binary-analyst, effect: allow}

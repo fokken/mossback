@@ -1,7 +1,8 @@
 # Offline PCAP analysis
 
 The universal image includes TShark and capinfos for saved PCAP/PCAPNG analysis.
-No MCP server is needed. Put captures in `artifacts/pcap/` and launch normally;
+WireMCP supplies saved-capture context over stdio MCP. Put captures in
+`artifacts/pcap/` and launch normally;
 the coordinator can delegate to `pcap-analyst`.
 
 Example operator request:
@@ -42,14 +43,32 @@ preservation policy. Rebuild the analyzer image to install this capability.
 References: [TShark manual](https://www.wireshark.org/docs/man-pages/tshark.html)
 and [capinfos manual](https://www.wireshark.org/docs/man-pages/capinfos.html).
 
-## WireMCP integration assessment
+## Upstream WireMCP
 
-[WireMCP](https://github.com/0xKoda/WireMCP) is not enabled in this bootstrap.
-Its current upstream server mixes saved-capture analysis with live capture,
-external threat-feed requests and raw credential extraction. Its PCAP handler
-interpolates an unrestricted file path into a shell command. An integration
-must first remove incompatible tools server-side, replace shell interpolation
-with argument-array subprocesses, confine files to assessment paths, disable
-name resolution, bound processing and persist evidence. OpenCode tool denials
-alone are not sufficient hardening. A reviewed offline-only adaptation can
-reuse the deterministic tools installed here without granting network access.
+Supply `WIREMCP_COMMIT` as a reviewed full 40-character Git commit and rebuild
+with `--build-arg WIREMCP_COMMIT="$WIREMCP_COMMIT"`. The image installs unmodified
+[WireMCP](https://github.com/0xKoda/WireMCP) at `/opt/wiremcp`; OpenCode starts it
+locally with Node, without runtime downloads. Build-time npm lifecycle scripts
+are disabled. The generated npm lockfile remains in the image; upstream uses
+dependency ranges, so the source commit alone does not pin the complete build.
+
+Only `wiremcp_analyze_pcap` is allowed, and other agents explicitly deny all
+WireMCP tools. Live-capture, external threat-lookups and credential-extraction
+tools remain registered upstream but are denied by OpenCode policy. Existing
+namespace firewalls, disabled dumpcap, dropped capabilities and resource limits
+are unchanged. Tool permissions must be verified with the pinned OpenCode
+version; they are not separate OS isolation between agents.
+
+Upstream interpolates capture paths into shell commands and does not enforce
+assessment path confinement or use `-n`. Its response trimming happens after
+parsing. These risks are not fixed by this integration. The agent must stage
+captures using reviewed copy commands into simple agent-chosen work paths
+before calling WireMCP, avoid attacker-controlled filenames, and preserve the
+original capture hash. Failed name lookups cannot expand permitted egress.
+The MCP timeout does not guarantee child-process termination; container exit
+does. Prefer `pcap-offline` for bounded processing and persistent exports.
+
+WireMCP may return sensitive HTTP host/URI metadata. Agents must redact and
+save relevant evidence themselves; upstream does not provide durable exports.
+Image build, stdio MCP startup and real OpenCode tool-policy enforcement still
+require deployment verification with your selected versions.

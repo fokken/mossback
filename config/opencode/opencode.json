@@ -5,6 +5,13 @@
   "update": "disable",
   "mcp": {
     "servers": {
+      "wiremcp": {
+        "type": "local",
+        "command": ["node", "/opt/wiremcp/index.js"],
+        "cwd": "/audit/work",
+        "codemode": false,
+        "timeout": { "startup": 30000, "catalog": 30000, "execution": 120000 }
+      },
       "burp": {
         "type": "local",
         "command": ["java", "-jar", "/opt/burp/mcp-proxy-all.jar", "--sse-url", "http://127.0.0.1:9876"],
@@ -30,6 +37,8 @@
     { "action": "edit", "resource": "/audit/work/AGENTS.md", "effect": "deny" },
     { "action": "edit", "resource": "/audit/work/.config/**", "effect": "deny" },
     { "action": "burp_*", "resource": "*", "effect": "deny" },
+    { "action": "wiremcp_*", "resource": "*", "effect": "deny" },
+    { "action": "wiremcp_analyze_pcap", "resource": "*", "effect": "allow" },
     { "action": "burp_get_proxy_http_history", "resource": "*", "effect": "allow" },
     { "action": "burp_get_proxy_http_history_regex", "resource": "*", "effect": "allow" },
     { "action": "burp_get_proxy_websocket_history", "resource": "*", "effect": "allow" },

@@ -1,0 +1,14 @@
+#!/bin/sh
+# Install unmodified upstream code at a reviewed commit during image construction.
+set -eu
+: "${WIREMCP_COMMIT:?full WireMCP commit required}"
+printf '%s' "$WIREMCP_COMMIT" | rg -q '^[0-9a-f]{40}$'
+git init /opt/wiremcp
+git -C /opt/wiremcp remote add origin https://github.com/0xKoda/WireMCP.git
+git -C /opt/wiremcp fetch --depth=1 origin "$WIREMCP_COMMIT"
+git -C /opt/wiremcp checkout --detach FETCH_HEAD
+test "$(git -C /opt/wiremcp rev-parse HEAD)" = "$WIREMCP_COMMIT"
+cd /opt/wiremcp
+npm install --omit=dev --ignore-scripts --no-audit --no-fund
+node --check index.js
+printf 'wiremcp=%s\n' "$WIREMCP_COMMIT" > /opt/mossback/wiremcp.lock
