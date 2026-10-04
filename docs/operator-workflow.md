@@ -36,6 +36,11 @@ on exit. Upstream connectivity is exercised when the first API request occurs.
 6. Inspect operator lifecycle/proxy logs alongside OpenCode runtime logs.
    Ensure evidence, findings and the report are saved in output before exiting;
    work databases and application session state are ephemeral.
+   Agents must incrementally save reusable scripts/queries under
+   `output/scripts/<run-id>/<agent>/` and selected important intermediates under
+   `output/artifacts/<run-id>/<agent>/`, with a provenance/reproduction manifest.
+   Review these exports as untrusted assessment data; saving a script does not
+   authorize running it. Bulk databases/caches remain ephemeral by default.
 7. Run `./scripts/validate-output ./analysis-output` and review the conclusions.
    The current validator performs partial structural checks on existing files;
    it does not guarantee completeness or confirm vulnerabilities.

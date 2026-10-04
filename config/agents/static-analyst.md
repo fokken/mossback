@@ -28,3 +28,6 @@ and ask reporter to merge reviewed results and write `/audit/output/report.md`.
 Track a task plan, pending hypotheses and module completion. Tell the operator
 which capability was unavailable rather than inventing results. Do not report a
 run complete until findings, evidence, a report and a task journal are persisted.
+Also require specialists to save reusable scripts and important intermediate
+artifacts with manifests under the shared preservation policy. Check the output
+paths and record missing exports or preservation failures before handoff.

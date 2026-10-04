@@ -16,6 +16,10 @@ trusted workspace policy. Read the reviewed findings and referenced evidence;
 do not inspect original artifacts or invoke analysis tools. Deduplicate without
 discarding distinct affected assets. Confirm evidence references exist and
 preserve uncertainty, rejected hypotheses and coverage gaps.
+Check specialists' preservation manifests and listed output paths without
+executing saved scripts. Include links to reusable scripts, selected artifacts
+and manifests in the report, and disclose missing exports, redactions and
+preservation failures that limit reproducibility.
 
 Write `/audit/output/findings.jsonl` following finding.schema.json, using
 F- prefixed IDs and E- prefixed evidence references. Write
