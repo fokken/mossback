@@ -117,7 +117,12 @@ def main():
         runtime = Path(runtime_value).resolve(strict=True) if runtime_value else None
         if runtime and (not runtime.is_dir() or not disjoint(runtime, source) or not disjoint(runtime, audit_parent)):
             raise ValueError("Burp runtime must be separate from artifacts and audit logs")
-        for path in (source, output, audit_parent, runtime):
+        rules_value = os.environ.get("ANALYSIS_RULES_DIR", "")
+        rules = Path(rules_value).resolve(strict=True) if rules_value else None
+        if rules and (not rules.is_dir() or any(not disjoint(rules, path)
+                                              for path in (source, output, audit_parent, runtime) if path)):
+            raise ValueError("ANALYSIS_RULES_DIR must be a directory separate from input, output, audit logs and Burp runtime")
+        for path in (source, output, audit_parent, runtime, rules):
             if path:
                 mount(path, "/check")
         run_id = "mossback-" + uuid.uuid4().hex[:16]
@@ -135,6 +140,8 @@ def main():
     started = timestamp()
     metadata = dict(run_id=run_id, start_time=started, model=model, status="running",
                     llm_host=host, llm_port=port, tls=tls == "1", input=str(source), output=str(output))
+    if rules:
+        metadata["analysis_rules_dir"] = str(rules)
     proxy_image = os.environ.get("PROXY_IMAGE", "mossback-proxy:local")
     analyzer_image = os.environ.get("ANALYZER_IMAGE", "mossback:local")
     exit_code = 1
@@ -190,6 +197,9 @@ def main():
                        "--env", f"ANALYSIS_RUN_ID={run_id}"]
             if runtime:
                 command.extend([*mount(runtime, "/opt/burp", True), "--env", f"BURP_PROJECT={project}"])
+            if rules:
+                command.extend([*mount(rules, "/audit/rules", True),
+                                "--env", "SEMGREP_CUSTOM_RULES_DIR=/audit/rules/semgrep"])
             if args.check_isolation:
                 command.extend(["--entrypoint=python3", analyzer_image, "/opt/mossback/tests/network-probe.py",
                                 proxy_ip, host, str(port), str(ipaddress.ip_network(subnet).network_address + 1)])

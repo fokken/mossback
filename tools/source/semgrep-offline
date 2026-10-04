@@ -11,4 +11,13 @@ for language in bash c clojure csharp dockerfile generic go html java javascript
     set -- --config "$rules_root/$language" "$@"
   fi
 done
+# Optional operator-supplied local rules augment the bundled rules.
+custom_rules=${SEMGREP_CUSTOM_RULES_DIR:-}
+if [ -n "$custom_rules" ] && [ -e "$custom_rules" ]; then
+  if [ ! -d "$custom_rules" ]; then
+    echo "SEMGREP_CUSTOM_RULES_DIR must be a directory" >&2
+    exit 64
+  fi
+  set -- --config "$custom_rules" "$@"
+fi
 exec semgrep scan --oss-only --metrics=off --disable-version-check "$@"

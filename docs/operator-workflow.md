@@ -7,6 +7,8 @@
    from rootless Podman. Use its exact model ID and a tool-capable model.
 3. Prepare separate input/output directories and, optionally, a trusted Burp
    runtime directory. Select a disjoint operator audit directory.
+   To supply custom Semgrep rules or CodeQL queries, set `ANALYSIS_RULES_DIR`
+   to a dedicated directory as described in [source tools](source-tools.md).
 4. Configure the endpoint and launch:
 
 ```sh

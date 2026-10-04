@@ -58,7 +58,7 @@ class ProxyConfigurationTests(unittest.TestCase):
 
 
 class LauncherTests(unittest.TestCase):
-    def simulate(self, directory, retained=False):
+    def simulate(self, directory, retained=False, custom_rules=False):
         source, output = Path(directory) / "input", Path(directory) / "output"
         source.mkdir()
         calls = []
@@ -78,6 +78,10 @@ class LauncherTests(unittest.TestCase):
 
         environment = {"LLM_HOST": "192.168.1.50", "LLM_PORT": "8080", "LLM_MODEL": "test",
                        "LLM_API_KEY": "secret-test"}
+        if custom_rules:
+            rules = Path(directory) / "rules"
+            rules.mkdir()
+            environment["ANALYSIS_RULES_DIR"] = str(rules)
         with patch.dict(os.environ, environment, clear=True), patch.object(sys, "argv", ["run-analysis", str(source), str(output)]), \
                 patch.object(launcher.subprocess, "run", side_effect=podman):
             status = launcher.main()
@@ -104,6 +108,35 @@ class LauncherTests(unittest.TestCase):
             self.assertFalse(any("--interactive" in cmd for cmd, _ in calls))
             self.assertTrue(any(cmd[1:3] == ["rm", "--force"] for cmd, _ in calls))
             self.assertEqual(json.loads((audit / "run.json").read_text())["status"], "failed")
+
+    def test_custom_rules_are_readonly_and_only_mounted_in_analyzer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            status, calls, audit = self.simulate(directory, custom_rules=True)
+            self.assertEqual(status, 0)
+            analyzer = next(cmd for cmd, _ in calls if "--interactive" in cmd)
+            rules_mount = next(arg for arg in analyzer if "dst=/audit/rules," in arg)
+            self.assertTrue(rules_mount.endswith(",ro"))
+            self.assertIn("SEMGREP_CUSTOM_RULES_DIR=/audit/rules/semgrep", analyzer)
+            self.assertFalse(any("dst=/audit/rules" in arg for cmd, _ in calls
+                                 if "--interactive" not in cmd for arg in cmd))
+            self.assertEqual(json.loads((audit / "run.json").read_text())["analysis_rules_dir"],
+                             str(Path(directory) / "rules"))
+
+    def test_custom_rules_cannot_overlap_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "input"
+            source.mkdir()
+            rules = Path(directory) / "rules"
+            rules.mkdir()
+            environment = {"LLM_HOST": "192.168.1.50", "LLM_PORT": "8080", "LLM_MODEL": "test",
+                           "ANALYSIS_RULES_DIR": str(rules)}
+            with patch.dict(os.environ, environment, clear=True), \
+                    patch.object(sys, "argv", ["run-analysis", str(source), str(rules / "output")]), \
+                    patch.object(launcher.subprocess, "run") as podman:
+                with self.assertRaises(SystemExit) as error:
+                    launcher.main()
+                self.assertEqual(error.exception.code, 2)
+                podman.assert_not_called()
 
 
 if __name__ == "__main__":

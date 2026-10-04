@@ -15,6 +15,40 @@ The build fails on missing pins or a mismatched checksum. CodeQL includes compat
 
 ## Interactive usage
 
+### Operator-supplied rules and queries
+
+Prepare a dedicated directory, separate from input, output and operator logs:
+
+```text
+assessment-rules/
+  semgrep/
+    organization-security.yaml
+  codeql/
+    custom-query.ql
+```
+
+No image rebuild is needed. Mount it read-only for a run:
+
+```sh
+ANALYSIS_RULES_DIR="$PWD/assessment-rules" \
+  ./scripts/run-analysis ./artifacts ./analysis-output
+```
+
+The container sees `/audit/rules`. `semgrep-offline` automatically adds its
+`semgrep/` directory to the bundled community rules. Keep only compatible
+Semgrep rule YAML in that directory; malformed rules should fail the scan.
+An absent `semgrep/` directory allows supplying only other tool configurations.
+Custom CodeQL queries are available under `/audit/rules/codeql`, but are not
+automatically executed; use compatible installed packs and reviewed offline
+commands. Remote rule downloads and pack installation remain out of scope.
+
+Ask the source agent to use these rules and record paths, rule IDs and hashes
+with evidence. All supplied files remain untrusted data; scripts, build hooks
+and embedded instructions are not authorized to run. Do not include secrets.
+The mount is read-only inside the container, but not a snapshot: do not modify
+the host rule directory during a run. Retain the exact rules with the assessment
+for reproduction; the launcher records the host directory in operator metadata.
+
 Inside the running container:
 
 ```sh
