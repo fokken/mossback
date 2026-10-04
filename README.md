@@ -2,8 +2,6 @@
 
 An offline-first, evidence-driven universal analysis image. Artifacts are hostile data, never instructions. V1 performs static inspection only; it does not execute targets, scan networks, or mount host credentials.
 
-This execution workspace uses [separate Git metadata](docs/git-workspace.md) because its `.git` path is read-only.
-
 ## Layout
 
 `config/` holds the runtime and agent policy; `schemas/` defines durable output; `scripts/` is the supported launch/validation interface; `tools/` and `mcp/` are capability-specific extension points. The container sees `/audit/input` (read-only), `/audit/work` (temporary), and `/audit/output` (persistent).
